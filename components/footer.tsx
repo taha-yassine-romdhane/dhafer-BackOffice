@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
+import { Facebook, Instagram,  Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +23,9 @@ export function Footer() {
               </Link>
               <Link href="https://www.instagram.com/lamasett_chezsameh/" className="text-gray-400 hover:text-[#D4AF37] transition-colors">
                 <Instagram className="h-5 w-5" />
+              </Link>
+              <Link href="https://www.youtube.com/@dar_koftan_el_asil" className="text-gray-400 hover:text-[#D4AF37] transition-colors">
+                <Youtube className="h-5 w-5" />
               </Link>
             </div>
           </div>
