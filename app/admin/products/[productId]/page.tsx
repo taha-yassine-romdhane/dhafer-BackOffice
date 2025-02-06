@@ -305,12 +305,12 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Product Information Section */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold mb-4">Product Information</h2>
+          <h2 className="text-xl font-semibold mb-4">Informations du produit</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Product Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Product Name *
+                Nom du produit *
               </label>
               <input
                 type="text"
@@ -324,7 +324,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             {/* Category Group */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Category Group *
+                Groupe de catégories *
               </label>
               <select
                 value={selectedCategoryGroup}
@@ -332,7 +332,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               >
-                <option value="">Select a category group</option>
+                <option value="">Choisissez une catégorie</option>
                 {CATEGORY_GROUPS.map(group => (
                   <option key={group.label} value={group.label}>
                     {group.label}
@@ -344,7 +344,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Category *
+                Catégorie *
               </label>
               <select
                 value={formData.category}
@@ -353,7 +353,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 required
                 disabled={!selectedCategoryGroup}
               >
-                <option value="">Select a category</option>
+                <option value="">Choisissez une catégorie</option>
                 {selectedCategoryGroup &&
                   CATEGORY_GROUPS
                     .find(group => group.label === selectedCategoryGroup)
@@ -369,7 +369,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             {/* Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Price (TND) *
+                Prix (TND) *
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -391,7 +391,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             {/* Sale Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Sale Price (TND)
+                Prix de vente (TND)
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -426,7 +426,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             {/* Sizes */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">
-                Sizes *
+                Tailles *
               </label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {selectedCategoryGroup && SIZE_GROUPS[selectedCategoryGroup]?.map((size) => (
@@ -463,16 +463,16 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           </div>
         </div>
 
-        {/* Color Variants Section */}
+        {/* Variants de couleur Section */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Color Variants</h2>
+            <h2 className="text-xl font-semibold">Variants de couleur</h2>
             <div className="flex gap-2 items-center">
               <input
                 type="text"
                 value={currentColor}
                 onChange={(e) => setCurrentColor(e.target.value)}
-                placeholder="Enter color name"
+                placeholder="Nom de la couleur"
                 className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
               <button
@@ -501,7 +501,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               {/* Display existing images if any */}
               {colorVariant.existingImages && colorVariant.existingImages.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Current Images</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Images existantes</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {colorVariant.existingImages.map((image, imageIndex) => (
                       <div key={image.id} className="relative group">
@@ -559,7 +559,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             onClick={() => router.back()}
             className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            Cancel
+            Annuler
           </button>
           <button
             type="submit"
@@ -567,7 +567,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading && <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />}
-            {loading ? 'Updating...' : 'Update Product'}
+            {loading ? 'Mise à jour...' : 'Mettre à jour le produit'}
           </button>
         </div>
       </form>

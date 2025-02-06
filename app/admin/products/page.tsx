@@ -60,7 +60,7 @@ export default function ProductsPage() {
     return acc;
   }, []);
 
-  const categories = ['all', ...uniqueCategories];
+  const categories = ['Tous', ...uniqueCategories];
 
   if (loading) {
     return (
@@ -74,16 +74,16 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
           <p className="mt-2 text-sm text-gray-700">
-            Manage your product catalog
+            Gérer votre catalogue de produits
           </p>
         </div>
         <button
           onClick={() => router.push('/admin/products/new')}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#D4AF37] hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          Add New Product
+          Ajouter un nouveau produit
         </button>
       </div>
 
@@ -143,13 +143,13 @@ export default function ProductsPage() {
                   onClick={() => router.push(`/admin/products/${product.id}`)}
                   className="flex-1 bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  Edit
+                  Modifier
                 </button>
                 <button
                   onClick={() => handleDelete(product.id)}
                   className="flex-1 bg-red-50 py-2 px-4 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
-                  Delete
+                  Supprimer
                 </button>
               </div>
             </div>
@@ -159,9 +159,9 @@ export default function ProductsPage() {
 
       {filteredProducts.length === 0 && (
         <div className="text-center py-12">
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun produit trouvé</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Try adjusting your search or filter to find what you're looking for.
+            Essayez d'adapter votre recherche ou votre filtre pour trouver ce que vous cherchez.
           </p>
         </div>
       )}

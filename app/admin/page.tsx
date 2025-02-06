@@ -167,24 +167,24 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-900">Total Products</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Total des produits</h3>
           <p className="text-3xl font-bold text-indigo-600">
             {analytics.totalProducts}
           </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-900">Total Orders</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Total des commandes</h3>
           <p className="text-3xl font-bold text-indigo-600">
             {analytics.totalOrders}
           </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <h3 className="text-lg font-semibold text-gray-900">Global Stock</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Stock global</h3>
           <p className="text-3xl font-bold text-indigo-600">
             {analytics.globalStock.totalStock}
           </p>
           <p className="text-sm text-gray-500">
-            {analytics.globalStock.lowStockItems} low stock items
+            {analytics.globalStock.lowStockItems} articles en rupture de stock
           </p>
         </div>
       </div>
@@ -192,14 +192,14 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Sales Overview
+            Aperçu des ventes
           </h3>
           <Line data={salesChartData} options={chartOptions} />
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Orders by Status
+            Commandes par Statut
           </h3>
           <div className="aspect-square relative">
             <Doughnut
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Orders
+            Commandes Recentes
           </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -231,13 +231,13 @@ export default function AdminDashboard() {
                     ID
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Customer
+                    Client
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Amount
+                    Montant
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
+                    Statut
                   </th>
                 </tr>
               </thead>
@@ -278,7 +278,7 @@ export default function AdminDashboard() {
 
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Order Status Summary
+            Résumé des statuts des commandes
           </h3>
           <div className="space-y-4">
             {analytics.ordersByStatus.map((statusData) => (
@@ -305,12 +305,12 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <div className="text-sm">
-                  <span className="text-gray-500">Orders: </span>
+                  <span className="text-gray-500">Commandes: </span>
                   <span className="font-medium text-gray-900">
                     {statusData.count}
                   </span>
                   <span className="mx-2 text-gray-300">|</span>
-                  <span className="text-gray-500">Revenue: </span>
+                  <span className="text-gray-500">Montant: </span>
                   <span className="font-medium text-gray-900">
                     {statusData.revenue.toFixed(2)} TND
                   </span>

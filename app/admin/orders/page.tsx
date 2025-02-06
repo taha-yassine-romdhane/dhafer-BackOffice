@@ -141,14 +141,14 @@ export default function Orders() {
         ).join('; ')
 
         return {
-          'Order ID': order.id,
+          'ID de la commande': order.id,
           'Date': new Date(order.createdAt).toLocaleDateString(),
-          'Customer Name': order.customerName,
-          'Phone Number': order.phoneNumber,
-          'Address': order.address,
-          'Items': itemsList,
-          'Total Amount': `${order.totalAmount.toFixed(2)} TND`,
-          'Status': order.status
+          'Nom du client': order.customerName,
+          'Numéro de téléphone': order.phoneNumber,
+          'Adresse': order.address,
+          'Articles': itemsList,
+          'Montant total': `${order.totalAmount.toFixed(2)} TND`,
+          'Statut': order.status
         }
       });
 
@@ -219,7 +219,7 @@ export default function Orders() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Orders</h1>
+          <h1 className="text-2xl font-bold">Commandes</h1>
           <button
             onClick={handleExportToExcel}
             disabled={exportLoading || orders.length === 0}
@@ -245,7 +245,7 @@ export default function Orders() {
                     d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
                   />
                 </svg>
-                Export to Excel
+                Exporter à Excel
               </>
             )}
           </button>
@@ -256,7 +256,7 @@ export default function Orders() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="mt-1 block w-48 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >
-            <option value="all">All Orders</option>
+            <option value="all">Toutes les commandes</option>
             {Object.values(OrderStatus).map((status) => (
               <option key={status} value={status}>
                 {status.charAt(0) + status.slice(1).toLowerCase()}
@@ -276,10 +276,10 @@ export default function Orders() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Info du client</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant total</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>

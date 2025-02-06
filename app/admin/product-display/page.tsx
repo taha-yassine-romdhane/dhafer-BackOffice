@@ -137,7 +137,7 @@ export default function ProductDisplayManager() {
       <div className="max-w-7xl mx-auto">
         <header className="mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Manage Product Display</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Gestion de l'affichage des produits</h1>
             {Object.keys(pendingChanges).length > 0 && (
               <button
                 onClick={saveAllChanges}
@@ -162,7 +162,7 @@ export default function ProductDisplayManager() {
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                {tab === 'topSales' ? 'Top Sales' : tab.charAt(0).toUpperCase() + tab.slice(1)} Page
+                {tab === 'topSales' ? 'Top Ventes' : tab.charAt(0).toUpperCase() + tab.slice(1)} Page
               </button>
             ))}
           </nav>
@@ -213,12 +213,12 @@ export default function ProductDisplayManager() {
                           : 'bg-blue-500 hover:bg-blue-600 text-white'
                       }`}
                     >
-                      {isShowing ? 'Remove' : 'Add'}
+                      {isShowing ? 'Supprimer' : 'Ajouter'}
                     </button>
                   </div>
   
                   <div className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Priority</span>
+                    <span className="text-sm text-gray-600">Priorité</span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleChange(product.id, { 
