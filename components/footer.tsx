@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AdminLink } from "./admin-link";
+
 
 export function Footer() {
   return (
@@ -116,7 +116,6 @@ export function Footer() {
               <Link href="/policy" className="text-sm text-gray-600 hover:text-[#D4AF37] transition-colors">
                 Politique de confidentialité
               </Link>
-              <AdminLink />
             </div>
           </div>
         </div>
