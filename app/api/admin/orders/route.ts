@@ -39,6 +39,7 @@ export async function GET(req: Request) {
         createdAt: 'desc',
       },
     });
+    await prisma.$disconnect();
 
     return NextResponse.json(orders);
   } catch (error) {
