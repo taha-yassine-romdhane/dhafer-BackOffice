@@ -53,7 +53,7 @@ export default function Orders() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('/api/admin/orders', { cache: 'no-store' });
+      const response = await fetch(`/api/admin/orders?timestamp=${Date.now()}`);
       
       const data = await response.json();
   

@@ -41,7 +41,11 @@ export async function GET(req: Request) {
     });
     await prisma.$disconnect();
 
-    return NextResponse.json(orders);
+    return NextResponse.json(orders, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+      },
+    });
   } catch (error) {
     console.error('Detailed orders fetch error:', error);
     return NextResponse.json(
