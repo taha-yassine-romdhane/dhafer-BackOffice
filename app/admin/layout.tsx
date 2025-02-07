@@ -8,7 +8,7 @@ import { Home, Package, ShoppingCart, BarChart, LayoutDashboard } from 'lucide-r
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
-
+const fetchCache = 'force-no-store';
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
 

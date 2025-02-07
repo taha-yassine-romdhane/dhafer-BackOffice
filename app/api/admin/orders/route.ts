@@ -57,3 +57,4 @@ export async function GET(req: Request) {
     );
   }
 }
+export const fetchCache = 'force-no-store';

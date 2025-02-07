@@ -6,7 +6,7 @@ import { Analytics } from "@vercel/analytics/react";
 
 
 const inter = Inter({ subsets: ['latin'] });
-
+export const fetchCache = 'force-no-store';
 export default function RootLayout({
   children,
 }: {

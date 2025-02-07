@@ -5,6 +5,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
+  reactStrictMode: true,
+  experimental: {
+    fetchCache: 'force-no-store',
+  },
 };
 
 module.exports = nextConfig;
