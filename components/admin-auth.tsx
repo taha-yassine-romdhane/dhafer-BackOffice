@@ -16,21 +16,42 @@ export function AdminAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const auth = document.cookie.split('; ').find(row => row.startsWith('admin-auth='))?.split('=')[1];
-    console.log('Admin Auth Component - Cookie Auth:', auth);
-    
-    if (auth === ADMIN_PASSWORD)  {
-      setIsAuthenticated(true);
-      setOpen(false);
-    }
+    // Generate a session token from the password
+    const generateSessionToken = (pwd: string) => {
+      return btoa(pwd + Date.now().toString()); // Simple token generation
+    };
+
+    const checkSession = () => {
+      const sessionToken = localStorage.getItem('admin-session');
+      const sessionExpiry = localStorage.getItem('admin-session-expiry');
+      
+      if (sessionToken && sessionExpiry) {
+        const expiryTime = parseInt(sessionExpiry);
+        if (Date.now() < expiryTime) {
+          setIsAuthenticated(true);
+          setOpen(false);
+          return;
+        }
+        // Clear expired session
+        localStorage.removeItem('admin-session');
+        localStorage.removeItem('admin-session-expiry');
+      }
+    };
+
+    checkSession();
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Admin Auth Component - Submitted Password:', password);
     
     if (password === ADMIN_PASSWORD) {
-      document.cookie = `admin-auth=${password}; path=/; max-age=86400; SameSite=Strict; HttpOnly`;
+      // Set session in localStorage with 24-hour expiry
+      const sessionToken = btoa(password + Date.now().toString());
+      const expiryTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+      
+      localStorage.setItem('admin-session', sessionToken);
+      localStorage.setItem('admin-session-expiry', expiryTime.toString());
+      
       setIsAuthenticated(true);
       setOpen(false);
     } else {

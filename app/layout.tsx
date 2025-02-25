@@ -1,7 +1,6 @@
 import './globals.css';
 
 import { Inter } from 'next/font/google';
-import { CartProvider } from "@/lib/context/cart-context";
 import { Analytics } from "@vercel/analytics/react";
 
 
@@ -15,12 +14,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={inter.className}>
-        <CartProvider>
           <main className="pt-16 min-h-screen">
             {children}
             <Analytics />
           </main>
-        </CartProvider>
       </body>
     </html>
   );

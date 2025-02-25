@@ -61,16 +61,30 @@ model ProductImage {
   @@index([colorVariantId])
 }
 
+model User {
+  id              Int       @id @default(autoincrement())
+  username        String    @unique
+  email           String    @unique
+  password        String
+  createdAt       DateTime  @default(now())
+  isSubscribed    Boolean   @default(false)
+  fidelityPoints  Int       @default(0)
+  orders          Order[]
+  contacts        Contact[]
+}
+
 model Order {
-  id          Int         @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   customerName String
-  phoneNumber String
-  address     String
-  totalAmount Float
-  status      OrderStatus @default(PENDING)
-  items       OrderItem[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  phoneNumber  String
+  address      String
+  totalAmount  Float
+  status       OrderStatus @default(PENDING)
+  items        OrderItem[]
+  userId       Int?        // Make it optional initially
+  user         User?       @relation(fields: [userId], references: [id]) // Make it optional initially
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -106,6 +120,20 @@ model Stock {
   updatedAt DateTime     @updatedAt
 
   @@unique([productId, location, size, colorId])
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  name      String?  // Optional for logged-in users
+  email     String?  // Optional for logged-in users
+  phone     String?  // Optional for logged-in users
+  message   String   @db.Text
+  userId    Int?     // Reference to User if logged in
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 enum OrderStatus {

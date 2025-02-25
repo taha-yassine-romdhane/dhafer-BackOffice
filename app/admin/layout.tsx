@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminAuth } from '@/components/admin-auth';
-import { Home, Package, ShoppingCart, BarChart, LayoutDashboard } from 'lucide-react';
+import { Home, Package, ShoppingCart, BarChart, LayoutDashboard, User, MessageCircleIcon } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
-const fetchCache = 'force-no-store';
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
 
@@ -18,38 +17,41 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Gestion de stock', href: '/admin/stock', icon: BarChart },
     { name: 'Affichage des produits', href: '/admin/product-display', icon: LayoutDashboard },
+    { name: 'Statistiques', href: '/admin/stats', icon: BarChart },
+    { name: 'Clients', href: '/admin/clients', icon: User },
+    { name: 'Contactes', href: '/admin/contacts', icon: MessageCircleIcon },
   ];
 
   return (
     <AdminAuth>
-      <div className="flex min-h-screen flex-col bg-gray-100">
-      <header className="border-b bg-white shadow">
-          <div className="container flex justify-between items-center h-10 px-4">
-            <h1 className="text-xl font-semibold">Panneau d'administration</h1>
-           
+      <div className="flex min-h-screen bg-gray-100">
+        <aside className="hidden w-64 shrink-0 border-r bg-white md:block">
+          <div className="flex h-14 items-center border-b px-4">
+            <h1 className="text-lg font-semibold">Administration</h1>
           </div>
-        </header>
+          <nav className="grid items-start px-2 py-4 text-sm font-medium">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`${
+                  pathname === item.href
+                    ? 'bg-blue-100 text-blue-900'
+                    : 'text-gray-600 hover:bg-gray-50'
+                } flex items-center gap-3 rounded-lg px-3 py-2 transition-all`}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        </aside>
 
-        <div className="container p-4 flex-1 flex items-start md:grid md:grid-cols-[240px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
-          <aside className="fixed top-16 z-30 hidden h-[calc(100vh-4rem)] w-full shrink-0 overflow-y-auto border-r bg-white shadow md:sticky md:block">
-            <nav className="grid items-start px-4 py-6 text-sm font-medium">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`${
-                    pathname === item.href
-                      ? 'bg-blue-100 text-blue-900'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  } flex items-center gap-3 rounded-lg px-3 py-2 transition-all`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-          </aside>
-          <main className="flex w-full flex-1 flex-col overflow-hidden p-6 bg-white shadow-lg rounded-lg">
+        <div className="flex flex-1 flex-col">
+          <header className="flex h-14 items-center border-b bg-white px-4 md:px-6">
+            <h1 className="text-lg font-semibold md:hidden">Administration</h1>
+          </header>
+          <main className="flex-1 p-4">
             {children}
           </main>
         </div>
