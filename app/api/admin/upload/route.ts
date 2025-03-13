@@ -1,9 +1,6 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import imagekit from '@/lib/imagekit-config';
-import sharp from 'sharp';
-
-
 
 export async function POST(request: Request) {
   try {
@@ -19,43 +16,45 @@ export async function POST(request: Request) {
       const file = files[i];
       const position = positions[i] || 'side'; // default to 'side' if position not specified
       
-      console.log(`Processing file: ${file.name}, position: ${position}`);
+      console.log(`Processing file: ${file.name}, position: ${position}, type: ${file.type}`);
       
       // Convert File to Buffer
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       
-      // Compress the image using sharp
-      const compressedBuffer = await sharp(buffer)
-        .rotate() // Apply orientation based on EXIF data
-        .resize({ width: 800 }) // Resize to a max width of 800px (adjust as needed)
-        .jpeg({ quality: 95 }) // Compress to maximal quality
-        .toBuffer();
-      
-      // Create a unique filename
+      // Create a unique filename - ensure it's properly formatted
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const fileName = `${position}-${uniqueSuffix}-${file.name.replace(/\s+/g, '-').toLowerCase()}`;
+      // Clean the filename to avoid problematic characters
+      const cleanFileName = file.name.replace(/\s+/g, '-').toLowerCase();
+      const fileName = `${position}-${uniqueSuffix}-${cleanFileName}`;
       
       try {
-        // Upload to ImageKit
+        // Upload to ImageKit directly with the buffer
+        // ImageKit SDK expects a buffer or a readable stream for the file parameter
         const uploadResponse = await imagekit.upload({
-          file: compressedBuffer, // Compressed buffer
+          file: buffer,
           fileName: fileName,
-          folder: '/products', // Optional: organize files in ImageKit
-          tags: [position], // Optional: add tags for better organization
-          useUniqueFileName: true,
+          folder: '/products',
+          tags: [position],
+          useUniqueFileName: false
         });
 
         console.log(`File uploaded successfully to ImageKit. URL: ${uploadResponse.url}`);
+        
+        // Determine if this is the main image based on position
+        const isMain = position === 'main' || (i === 0 && files.length === 1);
         
         uploadedImages.push({
           url: uploadResponse.url,
           fileId: uploadResponse.fileId,
           position: position,
-          thumbnailUrl: uploadResponse.thumbnailUrl,
+          thumbnailUrl: uploadResponse.thumbnailUrl || uploadResponse.url,
+          isMain: isMain,
+          alt: cleanFileName.split('.')[0]
         });
       } catch (uploadError) {
         console.error(`Error uploading file ${fileName} to ImageKit:`, uploadError);
+        console.error('Upload error details:', JSON.stringify(uploadError, null, 2));
         throw new Error(`Failed to upload ${fileName} to ImageKit`);
       }
     }
@@ -79,4 +78,3 @@ export async function POST(request: Request) {
 
 // New route segment configuration
 export const dynamic = 'force-dynamic'; // Ensure the route is dynamic
-export const maxDuration = 30; // Set the maximum duration for the request (in seconds)
