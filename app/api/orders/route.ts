@@ -64,13 +64,7 @@ export async function POST(req: Request) {
         );
       }
 
-      // Deduct the ordered quantity from the stock
-      await prisma.stock.update({
-        where: { id: stock.id },
-        data: {
-          quantity: stock.quantity - item.quantity,
-        },
-      });
+  
 
       // Assign the found colorVariantId
       item.colorVariantId = product.colorVariants[0].id;

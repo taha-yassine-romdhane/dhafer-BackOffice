@@ -51,13 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Deduct the ordered quantity from the stock
-    await prisma.stock.update({
-      where: { id: stock.id },
-      data: {
-        quantity: stock.quantity - data.quantity,
-      },
-    });
+
 
     // Create the order
     const order = await prisma.order.create({
