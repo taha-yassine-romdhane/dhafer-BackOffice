@@ -4,14 +4,18 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# Install dependencies required for Sharp
+RUN apk add --no-cache build-base gcc autoconf automake libtool nasm vips-dev
+
 # Copy package.json and package-lock.json
 COPY package.json package-lock.json* ./
 
 # Copy the prisma directory
 COPY prisma ./prisma
 
-# Install dependencies
+# Install dependencies including Sharp with the correct platform
 RUN npm ci
+RUN npm install --platform=linuxmusl --arch=x64 sharp
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -35,6 +39,9 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Install runtime dependencies for Sharp
+RUN apk add --no-cache vips-dev
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -48,6 +55,7 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
 
 USER nextjs
 
