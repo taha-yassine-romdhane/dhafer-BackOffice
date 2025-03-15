@@ -6,7 +6,7 @@ import { Product } from '@/lib/types';
 import { ProductStockDetail } from '@/components/ProductStockDetail';
 import { format } from 'date-fns';
 
-const LOCATIONS = ["monastir", "tunis", "sfax", "online"] as const;
+const LOCATIONS = ["Jammel", "tunis", "sousse", "online"] as const;
 type Location = typeof LOCATIONS[number];
 
 export default function StockManagementPage() {

@@ -81,7 +81,7 @@ export async function PUT(
 
       // Create new stocks for the color variant
       const stocks = data.sizes.flatMap((size: string) =>
-        ["monastir", "tunis", "sfax", "online"].map(location => ({
+        ["Jammel", "tunis", "sousse", "online"].map(location => ({
           quantity: 5,
           size: size,
           location: location,

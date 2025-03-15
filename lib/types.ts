@@ -21,7 +21,7 @@ export interface ColorVariant {
 
 export interface Stock {
   id: number;
-  location: 'monastir' | 'tunis' | 'sfax' | 'online';
+  location: 'Jammel' | 'tunis' | 'sousse' | 'online';
   quantity: number;
   productId: number;
   size: string;

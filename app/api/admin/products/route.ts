@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       }
     });
 
-    const locations = ["jammel", "tunis", "sousse", "online"];
+    const locations = ["Jammel", "tunis", "sousse", "online"];
     const initialQuantity = 5;
 
     for (const variant of product.colorVariants) {

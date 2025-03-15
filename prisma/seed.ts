@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-const LOCATIONS = ['monastir', 'tunis', 'sfax', 'online']
+const LOCATIONS = ['Jammel', 'tunis', 'sousse', 'online']
 const POSITION_DESCRIPTIONS = {
   1: "front",
   2: "back",

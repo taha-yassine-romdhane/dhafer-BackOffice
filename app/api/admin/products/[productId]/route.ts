@@ -119,7 +119,7 @@ export async function PUT(
           );
 
           if (sizeChanged) {
-            const locations = ["monastir", "tunis", "sfax", "online"] as const;
+            const locations = ["Jammel", "tunis", "sousse", "online"] as const;
             type Location = typeof locations[number];
 
             // Create new stocks for new sizes
@@ -176,7 +176,7 @@ export async function PUT(
           });
 
           // Create stocks for new variant
-          const locations = ["monastir", "tunis", "sfax", "online"] as const;
+          const locations = ["Jammel", "tunis", "sousse", "online"] as const;
           type Location = typeof locations[number];
           
           await prisma.stock.createMany({

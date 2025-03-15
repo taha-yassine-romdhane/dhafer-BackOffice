@@ -209,7 +209,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             images = [...images, ...uploadedImages];
           }
 
-          const locations = ["monastir", "tunis", "sfax", "online"] as const;
+          const locations = ["Jammel", "tunis", "sousse", "online"] as const;
 
           // Create stocks data
           const stocksData = formData.sizes.flatMap(size =>

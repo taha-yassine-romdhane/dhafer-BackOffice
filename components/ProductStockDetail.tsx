@@ -4,7 +4,7 @@
 import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 
-const LOCATIONS = ["monastir", "tunis", "sfax", "online"] as const;
+const LOCATIONS = ["Jammel", "tunis", "sousse", "online"] as const;
 type Location = typeof LOCATIONS[number];
 
 interface Stock {
