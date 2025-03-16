@@ -14,6 +14,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import { OrderStatus } from '@prisma/client';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 ChartJS.register(
   CategoryScale,
@@ -53,7 +54,8 @@ interface Analytics {
   last7DaysLabels: string[];
   globalStock: {
     totalStock: number;
-    lowStockItems: number;
+    inStockItems: number;
+    outOfStockItems: number;
   };
 }
 
@@ -80,7 +82,8 @@ export default function AdminDashboard() {
     last7DaysLabels: [],
     globalStock: {
       totalStock: 0,
-      lowStockItems: 0,
+      inStockItems: 0,
+      outOfStockItems: 0,
     },
   });
   const [loading, setLoading] = useState(true);
@@ -150,11 +153,7 @@ export default function AdminDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -184,7 +183,10 @@ export default function AdminDashboard() {
             {analytics.globalStock.totalStock}
           </p>
           <p className="text-sm text-gray-500">
-            {analytics.globalStock.lowStockItems} articles en rupture de stock
+            {analytics.globalStock.inStockItems} articles en stock
+          </p>
+          <p className="text-sm text-gray-500">
+            {analytics.globalStock.outOfStockItems} articles en rupture de stock
           </p>
         </div>
       </div>

@@ -9,9 +9,10 @@ export async function GET() {
       totalClients,
       totalRevenue,
       totalStock,
+      inStockCount,
+      outOfStockCount,
       ordersByStatus,
       topProducts,
-      stockByLocation,
       recentOrders,
       monthlyRevenue,
       clientStats
@@ -38,9 +39,19 @@ export async function GET() {
       }),
 
       // Total stock across all locations
-      prisma.stock.aggregate({
-        _sum: {
-          quantity: true
+      prisma.stock.count(),
+
+      // Count items that are in stock
+      prisma.stock.count({
+        where: {
+          inStock: true
+        }
+      }),
+
+      // Count items that are out of stock
+      prisma.stock.count({
+        where: {
+          inStock: false
         }
       }),
 
@@ -61,14 +72,6 @@ export async function GET() {
           name: true,
           orderCount: true,
           price: true
-        }
-      }),
-
-      // Stock by location
-      prisma.stock.groupBy({
-        by: ['location'],
-        _sum: {
-          quantity: true
         }
       }),
 
@@ -117,16 +120,23 @@ export async function GET() {
         totalOrders,
         totalClients,
         totalRevenue: totalRevenue._sum.totalAmount || 0,
-        totalStock: totalStock._sum.quantity || 0
+        totalStock,
+        inStockCount,
+        outOfStockCount
       },
       ordersByStatus,
       topProducts,
-      stockByLocation,
-      recentOrders,
+      recentOrders: recentOrders.map(order => ({
+        id: order.id,
+        customerName: order.customerName || 'Guest',
+        totalAmount: order.totalAmount || 0,
+        status: order.status,
+        createdAt: order.createdAt.toISOString()
+      })),
       monthlyRevenue,
       clientStats: {
-        avgFidelityPoints: Math.round(clientStats._avg.fidelityPoints || 0),
-        subscribedCount: clientStats._count.isSubscribed
+        avgFidelityPoints: clientStats?._avg?.fidelityPoints || 0,
+        subscribedCount: clientStats?._count?.isSubscribed || 0
       }
     })
   } catch (error) {

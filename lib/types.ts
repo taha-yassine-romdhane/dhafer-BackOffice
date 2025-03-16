@@ -7,6 +7,7 @@ export interface ProductImage {
   colorVariantId: number;
   createdAt: Date;
   updatedAt: Date;
+  ufsUrl?: string; // Add support for UploadThing URLs
 }
 
 export interface ColorVariant {
@@ -21,8 +22,7 @@ export interface ColorVariant {
 
 export interface Stock {
   id: number;
-  location: 'monastir' | 'tunis' | 'sfax' | 'online';
-  quantity: number;
+  inStock: boolean;
   productId: number;
   size: string;
   colorId: number;

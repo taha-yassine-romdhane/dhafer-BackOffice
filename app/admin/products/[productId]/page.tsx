@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, X, Plus } from 'lucide-react';
-import Dropzone from '@/components/drop-zone';
+import { UploadDropzone } from '@/utils/uploadthing';
 import { Stock, ProductImage } from '@/lib/types';
 import Image from 'next/image';
 import { SIZE_GROUPS } from '@/lib/constants';
@@ -186,28 +186,12 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       // Process each color variant
       const colorVariantsWithUrls = await Promise.all(
         formData.colorVariants.map(async (colorVariant) => {
+          // Combine existing images with newly uploaded images
+          // With UploadThing, images are already uploaded, so we just need to prepare the data
           let images = colorVariant.existingImages || [];
-
-          // Upload new images if any
-          if (colorVariant.images.length > 0) {
-            const imageFormData = new FormData();
-            colorVariant.images.forEach((image: File, index) => {
-              imageFormData.append('images', image);
-              imageFormData.append('positions', index === 0 ? 'front' : index === 1 ? 'back' : 'side');
-            });
-
-            const uploadResponse = await fetch('/api/admin/upload', {
-              method: 'POST',
-              body: imageFormData,
-            });
-
-            if (!uploadResponse.ok) {
-              throw new Error(`Failed to upload images for ${colorVariant.color}`);
-            }
-
-            const { images: uploadedImages } = await uploadResponse.json();
-            images = [...images, ...uploadedImages];
-          }
+          
+          // No need to upload images as they're already uploaded with UploadThing
+          console.log('Images for color variant:', images);
 
           const locations = ["monastir", "tunis", "sfax", "online"] as const;
 
@@ -498,14 +482,14 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 </button>
               </div>
 
-              {/* Display existing images if any */}
+              {/* Display existing images */}
               {colorVariant.existingImages && colorVariant.existingImages.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Images existantes</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">Existing Images ({colorVariant.existingImages.length})</h4>
+                  <div className="flex flex-wrap gap-3">
                     {colorVariant.existingImages.map((image, imageIndex) => (
-                      <div key={image.id} className="relative group">
-                        <div className="aspect-square relative rounded-lg overflow-hidden">
+                      <div key={image.id} className="relative w-24 h-24 border rounded-md overflow-hidden group">
+                        <div className="relative w-full h-full">
                           <Image
                             src={image.url}
                             alt={`Product ${imageIndex + 1}`}
@@ -534,20 +518,138 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 </div>
               )}
 
-              <Dropzone
-                color={colorVariant.color}
-                onImagesChange={(files, previewUrls) => {
-                  setFormData(prev => {
-                    const updatedColorVariants = [...prev.colorVariants];
-                    updatedColorVariants[colorIndex] = {
-                      ...updatedColorVariants[colorIndex],
-                      images: files,
-                      previewUrls: previewUrls
-                    };
-                    return { ...prev, colorVariants: updatedColorVariants };
-                  });
-                }}
-              />
+              {/* Upload new images with UploadThing */}
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">Upload New Images for {colorVariant.color}</h4>
+                <UploadDropzone
+                  endpoint="productImageUploader"
+                  appearance={{
+                    container: {
+                      minHeight: "200px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "2px dashed #E5E7EB",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                      backgroundColor: "#F9FAFB"
+                    },
+                    button: {
+                      background: "#4F46E5",
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      fontWeight: "500"
+                    },
+                    label: {
+                      color: "#374151",
+                      fontSize: "16px",
+                      fontWeight: "500"
+                    }
+                  }}
+                  onClientUploadComplete={(res) => {
+                    console.log("Upload completed:", res);
+                    if (!res || res.length === 0) {
+                      console.error("No response from upload");
+                      return;
+                    }
+                    
+                    // Create a copy of the uploaded images
+                    const uploadedImages = res.map((file, idx) => {
+                      console.log("Processing file:", file);
+                      // Ensure colorVariantId is a number
+                      const variantId = typeof colorVariant.colorVariantId === 'number' 
+                        ? colorVariant.colorVariantId 
+                        : typeof colorVariant.id === 'number'
+                          ? colorVariant.id
+                          : parseInt(colorVariant.id as string, 10) || Date.now();
+                          
+                      return {
+                        url: file.ufsUrl || file.url, // Try both properties to ensure compatibility
+                        position: idx === 0 ? 'front' : idx === 1 ? 'back' : 'side',
+                        isMain: idx === 0,
+                        id: Date.now() + idx,
+                        colorVariantId: variantId,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                      };
+                    });
+                    
+                    // Update the form data with the new images
+                    setFormData(prev => {
+                      const updatedColorVariants = [...prev.colorVariants];
+                      const urls = res.map(file => file.ufsUrl || file.url).filter(Boolean);
+                      
+                      if (urls.length === 0) {
+                        console.error("No valid URLs found in response");
+                        return prev;
+                      }
+                      
+                      // Add the new images to the existing images
+                      const currentExistingImages = updatedColorVariants[colorIndex].existingImages || [];
+                      updatedColorVariants[colorIndex] = {
+                        ...updatedColorVariants[colorIndex],
+                        existingImages: [
+                          ...currentExistingImages,
+                          ...uploadedImages
+                        ],
+                        // Keep track of preview URLs for display
+                        previewUrls: urls
+                      };
+                      
+                      return { ...prev, colorVariants: updatedColorVariants };
+                    });
+                  }}
+                  onUploadError={(error: Error) => {
+                    console.error("Upload error:", error);
+                    setError(`Upload error: ${error.message}`);
+                  }}
+                />
+              </div>
+
+              {/* Display preview of newly uploaded images */}
+              {colorVariant.previewUrls && colorVariant.previewUrls.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium mb-2">New Uploaded Images ({colorVariant.previewUrls.length})</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {colorVariant.previewUrls.map((url, idx) => (
+                      <div key={idx} className="relative w-24 h-24 border rounded-md overflow-hidden group">
+                        <img 
+                          src={url} 
+                          alt={`Preview ${idx + 1}`} 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
+                        <button
+                          type="button"
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                          onClick={() => {
+                            setFormData(prev => {
+                              const updatedColorVariants = [...prev.colorVariants];
+                              const updatedUrls = [...updatedColorVariants[colorIndex].previewUrls];
+                              
+                              updatedUrls.splice(idx, 1);
+                              
+                              updatedColorVariants[colorIndex] = {
+                                ...updatedColorVariants[colorIndex],
+                                previewUrls: updatedUrls
+                              };
+                              
+                              return { ...prev, colorVariants: updatedColorVariants };
+                            });
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 text-center">
+                          {idx === 0 ? 'Main' : idx === 1 ? 'Back' : `Side ${idx-1}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

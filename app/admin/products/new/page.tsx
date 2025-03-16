@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, X, Plus } from 'lucide-react';
-import Dropzone from '@/components/drop-zone';
+import { UploadDropzone } from '@/utils/uploadthing';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Stock, ProductImage } from '@/lib/types';
 import { SIZE_GROUPS } from '@/lib/constants';
 
@@ -26,7 +33,7 @@ export interface ColorVariantImages {
   id: number;
   color: string;
   colorVariantId: number;
-  images: File[];
+  images: ProductImage[];
   previewUrls: string[];
   stocks: Stock[];
 }
@@ -45,7 +52,10 @@ export interface FormData {
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
   const [currentColor, setCurrentColor] = useState<string>('');
   const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string>('');
 
@@ -136,42 +146,12 @@ export default function NewProductPage() {
         }
       });
 
-      // Upload images for each color variant
-      const colorVariantsWithUrls = await Promise.all(
-        formData.colorVariants.map(async (colorVariant) => {
-          const imageFormData = new FormData();
-          colorVariant.images.forEach((image: File, index) => {
-            imageFormData.append('images', image);
-            imageFormData.append('positions', index === 0 ? 'front' : index === 1 ? 'back' : 'side');
-          });
-
-          const uploadResponse = await fetch('/api/admin/upload', {
-            method: 'POST',
-            body: imageFormData,
-          });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`Failed to upload images for ${colorVariant.color}`);
-          }
-
-          const { images: uploadedImages }: { images: { url: string; alt?: string; isMain: boolean; position: string; }[] } = await uploadResponse.json();
-
-          return {
-            color: colorVariant.color,
-            images: uploadedImages.map((image): ProductImage => ({
-              id: Number(Date.now()), // Using timestamp as a unique number
-              url: image.url,
-              alt: image.alt || '',
-              isMain: image.isMain,
-              position: image.position,
-              colorVariantId: colorVariant.id,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })),
-            stocks: colorVariant.stocks
-          };
-        })
-      );
+      // With UploadThing, images are already uploaded, so we just need to prepare the data
+      const colorVariantsWithUrls = formData.colorVariants.map(colorVariant => ({
+        color: colorVariant.color,
+        images: colorVariant.images,
+        stocks: colorVariant.stocks
+      }));
 
       // Create product data
       const productData = {
@@ -417,20 +397,187 @@ export default function NewProductPage() {
                 </button>
               </div>
 
-              <Dropzone
-                color={colorVariant.color}
-                onImagesChange={(files, previewUrls) => {
-                  setFormData(prev => {
-                    const updatedColorVariants = [...prev.colorVariants];
-                    updatedColorVariants[colorIndex] = {
-                      ...updatedColorVariants[colorIndex],
-                      images: files,
-                      previewUrls: previewUrls
-                    };
-                    return { ...prev, colorVariants: updatedColorVariants };
-                  });
-                }}
-              />
+              <div className="mt-4">
+                <h3 className="font-medium mb-2">Images for {colorVariant.color}</h3>
+                <UploadDropzone
+                  endpoint="productImageUploader"
+                  appearance={{
+                    container: {
+                      minHeight: "200px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "2px dashed #E5E7EB",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                      backgroundColor: "#F9FAFB"
+                    },
+                    button: {
+                      background: "#4F46E5",
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      fontWeight: "500"
+                    },
+                    label: {
+                      color: "#374151",
+                      fontSize: "16px",
+                      fontWeight: "500"
+                    }
+                  }}
+                  onClientUploadComplete={(res) => {
+                    console.log("Upload completed:", res);
+                    if (!res || res.length === 0) {
+                      console.error("No response from upload");
+                      return;
+                    }
+                    
+                    // Create a copy of the uploaded images
+                    const uploadedImages = res.map((file, idx) => {
+                      console.log("Processing file:", file);
+                      return {
+                        url: file.ufsUrl || file.url, // Try both properties to ensure compatibility
+                        position: idx === 0 ? 'front' : idx === 1 ? 'back' : 'side',
+                        isMain: idx === 0,
+                        id: Date.now() + idx,
+                        colorVariantId: colorVariant.colorVariantId,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                      };
+                    });
+                    
+                    // Update the form data with the new images
+                    setFormData(prev => {
+                      const updatedColorVariants = [...prev.colorVariants];
+                      const urls = res.map(file => file.ufsUrl || file.url).filter(Boolean);
+                      
+                      if (urls.length === 0) {
+                        console.error("No valid URLs found in response");
+                        return prev;
+                      }
+                      
+                      updatedColorVariants[colorIndex] = {
+                        ...updatedColorVariants[colorIndex],
+                        images: uploadedImages,
+                        previewUrls: urls
+                      };
+                      
+                      return { ...prev, colorVariants: updatedColorVariants };
+                    });
+                  }}
+                  onUploadError={(error: Error) => {
+                    console.error("Upload error:", error);
+                    setError(`Upload error: ${error.message}`);
+                  }}
+                />
+                
+                {/* Display preview images */}
+                {colorVariant.previewUrls && colorVariant.previewUrls.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Preview Images ({colorVariant.previewUrls.length})</h4>
+                    <div className="flex flex-wrap gap-3">
+                      {colorVariant.previewUrls.map((url, idx) => (
+                        <div key={idx} className="relative w-24 h-24 border rounded-md overflow-hidden group">
+                          <img 
+                            src={url} 
+                            alt={`Preview ${idx + 1}`} 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
+                          <button
+                            type="button"
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                            onClick={() => {
+                              setFormData(prev => {
+                                const updatedColorVariants = [...prev.colorVariants];
+                                const updatedImages = [...updatedColorVariants[colorIndex].images];
+                                const updatedUrls = [...updatedColorVariants[colorIndex].previewUrls];
+                                
+                                updatedImages.splice(idx, 1);
+                                updatedUrls.splice(idx, 1);
+                                
+                                updatedColorVariants[colorIndex] = {
+                                  ...updatedColorVariants[colorIndex],
+                                  images: updatedImages,
+                                  previewUrls: updatedUrls
+                                };
+                                
+                                return { ...prev, colorVariants: updatedColorVariants };
+                              });
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 text-center">
+                            {idx === 0 ? 'Main' : idx === 1 ? 'Back' : `Side ${idx-1}`}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Stock Management Section */}
+              {formData.sizes.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-md font-medium mb-2">Disponibilité par taille</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {formData.sizes.map((size) => {
+                      // Find existing stock for this size/color
+                      const existingStock = colorVariant.stocks.find(s => s.size === size);
+                      
+                      return (
+                        <div key={size} className="flex items-center space-x-2 border rounded-md p-2">
+                          <label className="inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={existingStock ? existingStock.inStock : false}
+                              onChange={(e) => {
+                                setFormData(prev => {
+                                  const updatedColorVariants = [...prev.colorVariants];
+                                  const variantStocks = [...updatedColorVariants[colorIndex].stocks];
+                                  
+                                  const stockIndex = variantStocks.findIndex(s => s.size === size);
+                                  
+                                  if (stockIndex >= 0) {
+                                    // Update existing stock
+                                    variantStocks[stockIndex] = {
+                                      ...variantStocks[stockIndex],
+                                      inStock: e.target.checked
+                                    };
+                                  } else {
+                                    // Create new stock entry
+                                    variantStocks.push({
+                                      id: Date.now() + Math.random(),
+                                      size: size,
+                                      inStock: e.target.checked,
+                                      colorId: colorVariant.colorVariantId,
+                                      productId: 0, // Will be set by the API
+                                      createdAt: new Date(),
+                                      updatedAt: new Date()
+                                    });
+                                  }
+                                  
+                                  updatedColorVariants[colorIndex] = {
+                                    ...updatedColorVariants[colorIndex],
+                                    stocks: variantStocks
+                                  };
+                                  
+                                  return { ...prev, colorVariants: updatedColorVariants };
+                                });
+                              }}
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">{size}</span>
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -454,6 +601,34 @@ export default function NewProductPage() {
           </button>
         </div>
       </form>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Delete Product</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete this product? This action cannot be undone.
+          </DialogDescription>
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => {
+              // Handle delete logic here
+              setIsDeleting(true);
+              // Simulate delete operation
+              setTimeout(() => {
+                setIsDeleting(false);
+                setShowDeleteDialog(false);
+                // Show success message or redirect
+              }, 1000);
+            }} disabled={isDeleting}>
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

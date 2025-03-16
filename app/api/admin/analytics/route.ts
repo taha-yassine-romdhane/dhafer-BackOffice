@@ -104,17 +104,20 @@ export async function GET() {
     }, {} as Record<OrderStatus, number[]>);
 
     // Get global stock data
-    const globalStock = await prisma.stock.aggregate({
-      _sum: {
-        quantity: true,
+    // Count total stock items
+    const totalStockItems = await prisma.stock.count();
+    
+    // Count items that are in stock
+    const inStockItems = await prisma.stock.count({
+      where: {
+        inStock: true,
       },
     });
-
-    const lowStockItems = await prisma.stock.count({
+    
+    // Count items that are out of stock
+    const outOfStockItems = await prisma.stock.count({
       where: {
-        quantity: {
-          lt: 10, // Items with less than 10 in stock
-        },
+        inStock: false,
       },
     });
 
@@ -128,8 +131,9 @@ export async function GET() {
       salesByStatus,
       last7DaysLabels: salesData.labels,
       globalStock: {
-        totalStock: globalStock._sum.quantity || 0,
-        lowStockItems,
+        totalStock: totalStockItems,
+        inStockItems,
+        outOfStockItems,
       },
     };
 

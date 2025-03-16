@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,10 @@ export function AdminAuth({ children }: { children: React.ReactNode }) {
         }
       }}>
         <DialogContent>
+          <DialogTitle>Admin Authentication</DialogTitle>
+          <DialogDescription>
+            Please enter your password to access the admin panel.
+          </DialogDescription>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="password"

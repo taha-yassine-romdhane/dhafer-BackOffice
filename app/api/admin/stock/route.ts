@@ -16,6 +16,7 @@ export async function GET() {
             color: true,
             images: {
               select: {
+                id: true,
                 url: true,
                 isMain: true,
               },
@@ -27,9 +28,8 @@ export async function GET() {
             stocks: {
               select: {
                 id: true,
-                quantity: true,
+                inStock: true,
                 size: true,
-                location: true,
                 colorId: true,
                 updatedAt: true,
               },
@@ -49,13 +49,25 @@ export async function GET() {
 
     console.log(`Successfully fetched ${products.length} products`);
 
+    // Transform the data to include location for the UI
+    const transformedProducts = products.map(product => ({
+      ...product,
+      colorVariants: product.colorVariants.map(variant => ({
+        ...variant,
+        stocks: variant.stocks.map(stock => ({
+          ...stock,
+          // Add location for UI purposes
+          location: 'online' as const,
+        })),
+      })),
+    }));
+
     return NextResponse.json({ 
       success: true, 
-      products 
+      products: transformedProducts 
     });
   } catch (error) {
-
-
+    console.error('Error fetching stocks:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -68,32 +80,40 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { stockId, quantity } = await request.json();
-    console.log('Updating stock:', { stockId, quantity });
+    const { stockId, inStock } = await request.json();
+    console.log('Updating stock:', { stockId, inStock });
 
-    if (typeof stockId !== 'number' || typeof quantity !== 'number' || quantity < 0) {
+    if (typeof stockId !== 'number' || typeof inStock !== 'boolean') {
       return NextResponse.json(
         { success: false, error: 'Invalid input' },
         { status: 400 }
       );
     }
 
+    // Update the inStock field directly
     const updatedStock = await prisma.stock.update({
       where: { id: stockId },
-      data: { quantity },
+      data: { 
+        inStock 
+      },
       select: {
         id: true,
-        quantity: true,
+        inStock: true,
         size: true,
-        location: true,
         colorId: true,
         updatedAt: true,
       },
     });
 
+    // Add the location field for the UI
+    const transformedStock = {
+      ...updatedStock,
+      location: 'online' as const,
+    };
+
     return NextResponse.json({ 
       success: true, 
-      stock: updatedStock 
+      stock: transformedStock 
     });
   } catch (error) {
     console.log("error ", error);

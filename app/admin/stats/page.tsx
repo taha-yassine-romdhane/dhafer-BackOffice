@@ -31,6 +31,8 @@ interface StatsData {
     totalClients: number
     totalRevenue: number
     totalStock: number
+    inStockCount: number
+    outOfStockCount: number
   }
   ordersByStatus: Array<{
     status: string
@@ -41,12 +43,6 @@ interface StatsData {
     name: string
     orderCount: number
     price: number
-  }>
-  stockByLocation: Array<{
-    location: string
-    _sum: {
-      quantity: number
-    }
   }>
   recentOrders: Array<{
     id: number
@@ -195,8 +191,14 @@ export default function StatsPage() {
           trend={{ value: 15, label: 'vs last month' }}
         />
         <StatCard
-          title="Stock Total"
-          value={stats.overview.totalStock}
+          title="Stock Disponible"
+          value={stats.overview.inStockCount}
+          icon={Package2}
+          trend={{ value: -3, label: 'vs last month' }}
+        />
+        <StatCard
+          title="Stock Épuisé"
+          value={stats.overview.outOfStockCount}
           icon={Package2}
           trend={{ value: -3, label: 'vs last month' }}
         />
@@ -208,55 +210,87 @@ export default function StatsPage() {
         />
       </div>
 
-      {/* Orders and Stock Status */}
+      {/* Stock and Client Stats */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        <DashboardCard title="État des Commandes">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Nombre</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.ordersByStatus.map((status) => (
-                  <TableRow key={status.status}>
-                    <TableCell>
-                      <StatusBadge status={status.status} />
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {status._count}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <DashboardCard title="État du Stock">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-green-700">En Stock</h3>
+              <p className="text-3xl font-bold text-green-600">{stats.overview.inStockCount}</p>
+              <p className="text-sm text-green-500">
+                {Math.round((stats.overview.inStockCount / stats.overview.totalStock) * 100)}% du stock total
+              </p>
+            </div>
+            <div className="bg-red-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-red-700">Épuisé</h3>
+              <p className="text-3xl font-bold text-red-600">{stats.overview.outOfStockCount}</p>
+              <p className="text-sm text-red-500">
+                {Math.round((stats.overview.outOfStockCount / stats.overview.totalStock) * 100)}% du stock total
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-lg font-medium mb-2">Résumé du Stock</h3>
+            <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500" 
+                style={{ 
+                  width: `${Math.round((stats.overview.inStockCount / stats.overview.totalStock) * 100)}%` 
+                }}
+              ></div>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span>Total: {stats.overview.totalStock} articles</span>
+              <span>{Math.round((stats.overview.inStockCount / stats.overview.totalStock) * 100)}% disponible</span>
+            </div>
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Stock par Emplacement">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Emplacement</TableHead>
-                  <TableHead className="text-right">Quantité</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.stockByLocation.map((location) => (
-                  <TableRow key={location.location}>
-                    <TableCell className="font-medium capitalize">
-                      {location.location}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {location._sum.quantity}
-                    </TableCell>
+        <DashboardCard title="Statistiques Clients">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-blue-700">Points de Fidélité</h3>
+              <p className="text-3xl font-bold text-blue-600">{stats.clientStats.avgFidelityPoints}</p>
+              <p className="text-sm text-blue-500">
+                Points moyens par client
+              </p>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h3 className="text-lg font-medium text-purple-700">Abonnés</h3>
+              <p className="text-3xl font-bold text-purple-600">{stats.clientStats.subscribedCount}</p>
+              <p className="text-sm text-purple-500">
+                Clients abonnés à la newsletter
+              </p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-lg font-medium mb-2">Commandes Récentes</h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {stats.recentOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        {order.customerName}
+                      </TableCell>
+                      <TableCell>{formatDate(order.createdAt)}</TableCell>
+                      <TableCell className="text-right">{order.totalAmount} DT</TableCell>
+                      <TableCell>
+                        <StatusBadge status={order.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </DashboardCard>
       </div>
