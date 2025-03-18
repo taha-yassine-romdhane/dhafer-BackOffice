@@ -7,6 +7,7 @@ import { UploadDropzone } from '@/utils/uploadthing';
 import { Stock, ProductImage } from '@/lib/types';
 import Image from 'next/image';
 import { SIZE_GROUPS } from '@/lib/constants';
+import { RichTextarea } from '@/components/ui/rich-textarea';
 
 const CATEGORY_GROUPS : { label: string; categories: string[] }[] = [
   {
@@ -398,13 +399,16 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               <label className="block text-sm font-medium text-gray-700">
                 Description *
               </label>
-              <textarea
+              <RichTextarea
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={4}
+                onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+                maxLength={2000}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Vous pouvez utiliser des emojis et du texte formaté pour décrire votre produit.
+              </p>
             </div>
 
             {/* Sizes */}

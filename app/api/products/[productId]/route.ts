@@ -80,15 +80,12 @@ export async function PUT(
       console.log(`Images to be created for color variant ${variant.color}:`, JSON.stringify(images, null, 2));
 
       // Create new stocks for the color variant
-      const stocks = data.sizes.flatMap((size: string) =>
-        ["monastir", "tunis", "sfax", "online"].map(location => ({
-          quantity: 5,
-          size: size,
-          location: location,
-          colorId: colorVariantId,
-          productId: productId, // Ensure productId is included here
-        }))
-      );
+      const stocks = data.sizes.map((size: string) => ({
+        inStock: true,
+        size: size,
+        colorId: colorVariantId,
+        productId: productId,
+      }));
 
       console.log(`Stocks to be created for color variant ${variant.color}:`, JSON.stringify(stocks, null, 2));
 
@@ -136,6 +133,7 @@ export async function PUT(
     );
   }
 }
+
 export async function GET(
   request: Request,
   { params }: { params: { productId: string } }
@@ -157,7 +155,8 @@ export async function GET(
       include: {
         colorVariants: {
           include: {
-            images: true
+            images: true,
+            stocks: true
           }
         }
       }
@@ -202,11 +201,11 @@ export async function DELETE(
       }
     })
 
-    return NextResponse.json({ message: 'Product deleted successfully' })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting product:', error)
     return NextResponse.json(
-      { error: 'Failed to delete product' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

@@ -119,23 +119,17 @@ export async function PUT(
           );
 
           if (sizeChanged) {
-            const locations = ["monastir", "tunis", "sfax", "online"] as const;
-            type Location = typeof locations[number];
-
             // Create new stocks for new sizes
             const newStocksData = data.sizes
               .filter((size: string) => 
                 !existingVariant.stocks.some((stock: Stock) => stock.size === size)
               )
-              .flatMap((size: string) => 
-                locations.map((location: Location) => ({
-                  quantity: 5,
-                  size,
-                  location,
-                  colorId: existingVariant.id,
-                  productId: product.id
-                }))
-              );
+              .map((size: string) => ({
+                inStock: true,
+                size,
+                colorId: existingVariant.id,
+                productId: product.id
+              }));
 
             if (newStocksData.length > 0) {
               await prisma.stock.createMany({ data: newStocksData });
@@ -176,19 +170,13 @@ export async function PUT(
           });
 
           // Create stocks for new variant
-          const locations = ["monastir", "tunis", "sfax", "online"] as const;
-          type Location = typeof locations[number];
-          
           await prisma.stock.createMany({
-            data: data.sizes.flatMap((size: string) => 
-              locations.map((location: Location) => ({
-                quantity: 5,
-                size,
-                location,
-                colorId: newVariant.id,
-                productId: product.id
-              }))
-            )
+            data: data.sizes.map((size: string) => ({
+              inStock: true,
+              size,
+              colorId: newVariant.id,
+              productId: product.id
+            }))
           });
         }
       }
