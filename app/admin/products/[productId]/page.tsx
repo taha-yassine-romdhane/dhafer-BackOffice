@@ -8,6 +8,7 @@ import { Stock, ProductImage } from '@/lib/types';
 import Image from 'next/image';
 import { SIZE_GROUPS } from '@/lib/constants';
 import { RichTextarea } from '@/components/ui/rich-textarea';
+import { generateUUID } from '@/utils/uuid';
 
 const CATEGORY_GROUPS : { label: string; categories: string[] }[] = [
   {
@@ -102,9 +103,9 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           sizes: product.sizes || [],
           collaborateur: product.collaborateur || null,
           colorVariants: product.colorVariants?.map((cv: any) => ({
-            id: cv.id || crypto.randomUUID(),
+            id: cv.id || generateUUID(),
             color: cv.color || '',
-            colorVariantId: cv.id || crypto.randomUUID(),
+            colorVariantId: cv.id || generateUUID(),
             images: [], // New images to be uploaded
             previewUrls: [], // Preview URLs for new images
             existingImages: cv.images || [], // Existing images from the database
@@ -152,8 +153,8 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         previewUrls: [],
         existingImages: [],
         stocks: [],
-        id: crypto.randomUUID(),
-        colorVariantId: crypto.randomUUID()
+        id: generateUUID(),
+        colorVariantId: generateUUID()
       }]
     }));
     setCurrentColor('');
