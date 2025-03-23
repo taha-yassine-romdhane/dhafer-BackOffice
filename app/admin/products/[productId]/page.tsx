@@ -490,7 +490,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               {/* Display existing images */}
               {colorVariant.existingImages && colorVariant.existingImages.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="font-medium mb-2">Existing Images ({colorVariant.existingImages.length})</h4>
+                  <h4 className="font-medium mb-2">Images existantes ({colorVariant.existingImages.length})</h4>
                   <div className="flex flex-wrap gap-3">
                     {colorVariant.existingImages.map((image, imageIndex) => (
                       <div key={image.id} className="relative w-24 h-24 border rounded-md overflow-hidden group">
@@ -502,6 +502,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                             className="object-cover"
                           />
                         </div>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
                         <button
                           type="button"
                           onClick={() => {
@@ -517,12 +518,38 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                         >
                           <X className="h-4 w-4" />
                         </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 text-center">
+                          {image.isMain ? 'Main' : image.position === 'front' ? 'Front' : image.position === 'back' ? 'Back' : 'Side'}
+                        </div>
+                        {!image.isMain && (
+                          <button
+                            type="button"
+                            className="absolute top-1 left-1 bg-indigo-500 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => {
+                              setFormData(prev => {
+                                const updatedColorVariants = [...prev.colorVariants];
+                                const updatedImages = updatedColorVariants[colorIndex].existingImages?.map((img, imgIdx) => ({
+                                  ...img,
+                                  isMain: imgIdx === imageIndex, // Set current image as main, others as not main
+                                  position: imgIdx === imageIndex ? 'front' : img.position // Update position if needed
+                                }));
+                                
+                                if (updatedImages) {
+                                  updatedColorVariants[colorIndex].existingImages = updatedImages;
+                                }
+                                
+                                return { ...prev, colorVariants: updatedColorVariants };
+                              });
+                            }}
+                          >
+                            Set as Main
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
               {/* Upload new images with UploadThing */}
               <div className="mt-4">
                 <h4 className="font-medium mb-2">Upload New Images for {colorVariant.color}</h4>
@@ -573,7 +600,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                       return {
                         url: file.ufsUrl || file.url, // Try both properties to ensure compatibility
                         position: idx === 0 ? 'front' : idx === 1 ? 'back' : 'side',
-                        isMain: idx === 0,
+                        isMain: false, // Default to false, user can set main image later
                         id: Date.now() + idx,
                         colorVariantId: variantId,
                         createdAt: new Date(),
@@ -599,8 +626,11 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                           ...currentExistingImages,
                           ...uploadedImages
                         ],
-                        // Keep track of preview URLs for display
-                        previewUrls: urls
+                        // Append new preview URLs to existing ones instead of replacing
+                        previewUrls: [
+                          ...(updatedColorVariants[colorIndex].previewUrls || []),
+                          ...urls
+                        ]
                       };
                       
                       return { ...prev, colorVariants: updatedColorVariants };
@@ -616,7 +646,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               {/* Display preview of newly uploaded images */}
               {colorVariant.previewUrls && colorVariant.previewUrls.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="font-medium mb-2">New Uploaded Images ({colorVariant.previewUrls.length})</h4>
+                  <h4 className="font-medium mb-2">Nouvelles images ({colorVariant.previewUrls.length})</h4>
                   <div className="flex flex-wrap gap-3">
                     {colorVariant.previewUrls.map((url, idx) => (
                       <div key={idx} className="relative w-24 h-24 border rounded-md overflow-hidden group">
@@ -628,17 +658,28 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
                         <button
                           type="button"
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
                           onClick={() => {
                             setFormData(prev => {
                               const updatedColorVariants = [...prev.colorVariants];
                               const updatedUrls = [...updatedColorVariants[colorIndex].previewUrls];
                               
+                              // Get the corresponding image from existingImages that was added during upload
+                              const currentExistingImages = [...(updatedColorVariants[colorIndex].existingImages || [])];
+                              // Calculate the index in existingImages (it would be after the original existing images)
+                              const originalExistingCount = currentExistingImages.length - updatedColorVariants[colorIndex].previewUrls.length;
+                              const imageIndexInExisting = originalExistingCount + idx;
+                              
+                              // Remove from both previewUrls and existingImages
                               updatedUrls.splice(idx, 1);
+                              if (imageIndexInExisting >= 0 && imageIndexInExisting < currentExistingImages.length) {
+                                currentExistingImages.splice(imageIndexInExisting, 1);
+                              }
                               
                               updatedColorVariants[colorIndex] = {
                                 ...updatedColorVariants[colorIndex],
-                                previewUrls: updatedUrls
+                                previewUrls: updatedUrls,
+                                existingImages: currentExistingImages
                               };
                               
                               return { ...prev, colorVariants: updatedColorVariants };
@@ -648,8 +689,55 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                           <X size={14} />
                         </button>
                         <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 text-center">
-                          {idx === 0 ? 'Main' : idx === 1 ? 'Back' : `Side ${idx-1}`}
+                          {/* Calculate the index in existingImages */}
+                          {(() => {
+                            const currentExistingImages = colorVariant.existingImages || [];
+                            const originalExistingCount = currentExistingImages.length - colorVariant.previewUrls.length;
+                            const imageIndex = originalExistingCount + idx;
+                            const image = imageIndex >= 0 && imageIndex < currentExistingImages.length 
+                              ? currentExistingImages[imageIndex] 
+                              : null;
+                              
+                            return image?.isMain ? 'Main' : idx === 0 ? 'Front' : idx === 1 ? 'Back' : `Side ${idx-1}`;
+                          })()}
                         </div>
+                        {/* Add Set as Main button */}
+                        {(() => {
+                          const currentExistingImages = colorVariant.existingImages || [];
+                          const originalExistingCount = currentExistingImages.length - colorVariant.previewUrls.length;
+                          const imageIndex = originalExistingCount + idx;
+                          const image = imageIndex >= 0 && imageIndex < currentExistingImages.length 
+                            ? currentExistingImages[imageIndex] 
+                            : null;
+                            
+                          if (!image?.isMain) {
+                            return (
+                              <button
+                                type="button"
+                                className="absolute top-1 left-1 bg-indigo-500 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  setFormData(prev => {
+                                    const updatedColorVariants = [...prev.colorVariants];
+                                    const updatedImages = updatedColorVariants[colorIndex].existingImages?.map((img, imgIdx) => ({
+                                      ...img,
+                                      isMain: imgIdx === imageIndex, // Set current image as main, others as not main
+                                      position: imgIdx === imageIndex ? 'front' : img.position // Update position if needed
+                                    }));
+                                    
+                                    if (updatedImages) {
+                                      updatedColorVariants[colorIndex].existingImages = updatedImages;
+                                    }
+                                    
+                                    return { ...prev, colorVariants: updatedColorVariants };
+                                  });
+                                }}
+                              >
+                                Set as Main
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     ))}
                   </div>
