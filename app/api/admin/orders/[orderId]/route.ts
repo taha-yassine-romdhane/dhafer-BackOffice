@@ -58,3 +58,49 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { orderId: string } }
+) {
+  try {
+    const orderId = parseInt(params.orderId);
+
+    if (!orderId || isNaN(orderId)) {
+      return NextResponse.json(
+        { error: 'Valid order ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if order exists
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete order items first to maintain referential integrity
+    await prisma.orderItem.deleteMany({
+      where: { orderId }
+    });
+
+    // Then delete the order itself
+    await prisma.order.delete({
+      where: { id: orderId }
+    });
+
+    return NextResponse.json({ success: true, message: 'Order deleted successfully' });
+  } catch (error) {
+    console.error('Order deletion error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete order', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}

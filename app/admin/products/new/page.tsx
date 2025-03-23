@@ -18,11 +18,11 @@ import { SIZE_GROUPS } from '@/lib/constants';
 const CATEGORY_GROUPS = [
   {
     label: "Femme",
-    categories: ["abaya", "caftan", "robe-soire", "jebba"]
+    categories: ["abaya", "pull", "pantalon", "jebba"]
   },
   {
     label: "Enfants",
-    categories: ["enfants-caftan", "enfants-robe-soire", "tabdila"]
+    categories: ["enfants-pull", "enfants-pantalon", "enfants-jebba", "enfants-abaya"]
   },
   {
     label: "Accessoires",
@@ -463,8 +463,10 @@ export default function NewProductPage() {
                       
                       updatedColorVariants[colorIndex] = {
                         ...updatedColorVariants[colorIndex],
-                        images: uploadedImages,
-                        previewUrls: urls
+                        // Append new images to existing ones instead of replacing
+                        images: [...updatedColorVariants[colorIndex].images, ...uploadedImages],
+                        // Append new preview URLs to existing ones
+                        previewUrls: [...updatedColorVariants[colorIndex].previewUrls, ...urls]
                       };
                       
                       return { ...prev, colorVariants: updatedColorVariants };
@@ -514,8 +516,33 @@ export default function NewProductPage() {
                             <X size={14} />
                           </button>
                           <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 text-center">
-                            {idx === 0 ? 'Main' : idx === 1 ? 'Back' : `Side ${idx-1}`}
+                            {colorVariant.images[idx]?.isMain ? 'Main' : idx === 1 ? 'Back' : `Side ${idx-1}`}
                           </div>
+                          {!colorVariant.images[idx]?.isMain && (
+                            <button
+                              type="button"
+                              className="absolute top-1 left-1 bg-indigo-500 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => {
+                                setFormData(prev => {
+                                  const updatedColorVariants = [...prev.colorVariants];
+                                  const updatedImages = updatedColorVariants[colorIndex].images.map((img, imgIdx) => ({
+                                    ...img,
+                                    isMain: imgIdx === idx, // Set current image as main, others as not main
+                                    position: imgIdx === idx ? 'front' : img.position // Update position if needed
+                                  }));
+                                  
+                                  updatedColorVariants[colorIndex] = {
+                                    ...updatedColorVariants[colorIndex],
+                                    images: updatedImages
+                                  };
+                                  
+                                  return { ...prev, colorVariants: updatedColorVariants };
+                                });
+                              }}
+                            >
+                              Set as Main
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
