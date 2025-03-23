@@ -13,11 +13,11 @@ import { generateUUID } from '@/utils/uuid';
 const CATEGORY_GROUPS : { label: string; categories: string[] }[] = [
   {
     label: "Femme",
-    categories: ["abaya", "caftan", "robe-soire", "jebba"]
+    categories: ["abaya", "pull", "pantalon", "jebba"]
   },
   {
     label: "Enfants",
-    categories: ["enfants-caftan", "enfants-robe-soire", "tabdila"]
+    categories: ["enfants-pull", "enfants-pantalon", "enfants-jebba", "enfants-abaya"]
   },
   {
     label: "Accessoires",
