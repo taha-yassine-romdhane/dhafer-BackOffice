@@ -195,16 +195,11 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           // No need to upload images as they're already uploaded with UploadThing
           console.log('Images for color variant:', images);
 
-          const locations = ["monastir", "tunis", "sfax", "online"] as const;
-
           // Create stocks data
-          const stocksData = formData.sizes.flatMap(size =>
-            locations.map(location => ({
-              quantity: 5, // Default quantity
-              size: size,
-              location: location
-            }))
-          );
+          const stocksData = formData.sizes.map(size => ({
+            inStock: true, // Default to in stock
+            size: size
+          }));
           
           console.log('Stocks Data:', stocksData);
 
@@ -528,11 +523,20 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                             onClick={() => {
                               setFormData(prev => {
                                 const updatedColorVariants = [...prev.colorVariants];
-                                const updatedImages = updatedColorVariants[colorIndex].existingImages?.map((img, imgIdx) => ({
+                                // Set all images to not main first
+                                const updatedImages = updatedColorVariants[colorIndex].existingImages?.map(img => ({
                                   ...img,
-                                  isMain: imgIdx === imageIndex, // Set current image as main, others as not main
-                                  position: imgIdx === imageIndex ? 'front' : img.position // Update position if needed
+                                  isMain: false // Reset all to false first
                                 }));
+                                
+                                // Then set only the current image as main
+                                if (updatedImages && updatedImages[imageIndex]) {
+                                  updatedImages[imageIndex] = {
+                                    ...updatedImages[imageIndex],
+                                    isMain: true,
+                                    position: 'front' // Update position if needed
+                                  };
+                                }
                                 
                                 if (updatedImages) {
                                   updatedColorVariants[colorIndex].existingImages = updatedImages;

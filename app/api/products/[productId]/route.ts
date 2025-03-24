@@ -69,11 +69,17 @@ export async function PUT(
       // Get the color variant ID
       const colorVariantId = newVariant.id;
 
-      // Create new images for the color variant
+      // Find the main image in the input data
+      const mainImageIndex = variant.images.create.findIndex((img: any) => img.isMain === true);
+      
+      // If no image is explicitly marked as main, use the first image
+      const mainIndex = mainImageIndex !== -1 ? mainImageIndex : 0;
+      
+      // Create new images for the color variant, ensuring only one is marked as main
       const images = variant.images.create.map((img: any, index: number) => ({
         url: img.url,
         position: img.position || (index === 0 ? 'front' : index === 1 ? 'back' : 'side'),
-        isMain: img.isMain || (index === 0),
+        isMain: index === mainIndex, // Only one image will be marked as main
         colorVariantId: colorVariantId,
       }));
 
