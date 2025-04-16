@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  image-service:
+    build: .
+    container_name: image-compression-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    restart: unless-stopped

@@ -1,44 +1,69 @@
-# Use Debian instead of Alpine for better native support
-FROM node:18-slim AS base
+FROM node:18-alpine AS base
 
-# Install build dependencies needed for sharp
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    gcc \
-    autoconf \
-    automake \
-    libtool \
-    nasm \
-    libvips-dev \
-    && rm -rf /var/lib/apt/lists/*
-
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
 
-# Copy only package.json and lock file to install deps first
+# Install dependencies required for Sharp
+RUN apk add --no-cache build-base gcc autoconf automake libtool nasm vips-dev
+
+# Copy package.json and package-lock.json
 COPY package.json package-lock.json* ./
 
-# Install deps (this will install sharp correctly on linux-x64)
-RUN npm ci --include=optional
+# Copy the prisma directory
+COPY prisma ./prisma
 
-# Copy all project files
+# Install dependencies including Sharp with the correct platform
+RUN npm install
+RUN npm install --platform=linuxmusl --arch=x64 sharp
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Copy .env early if needed for prisma
+# Ensure the .env file is copied for Prisma to use
 COPY .env .env
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate Prisma client
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
-# Build Next.js app
+# Build Next.js based on the preferred package manager
 RUN npm run build
 
-# Clean up dev dependencies (optional)
-RUN npm prune --production
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
 
-# Start in production mode
-EXPOSE 3001
 ENV NODE_ENV production
-ENV HOSTNAME 0.0.0.0
-ENV PORT 3001
+ENV NEXT_TELEMETRY_DISABLED 1
 
+# Install runtime dependencies for Sharp
+RUN apk add --no-cache vips-dev
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+
+# Set the correct permission for prerender cache
+RUN mkdir .next
+RUN chown nextjs:nodejs .next
+
+# Automatically leverage output traces to reduce image size
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
+
+USER nextjs
+
+EXPOSE 3001
+
+ENV PORT 3001
+ENV HOSTNAME "0.0.0.0"
+
+# server.js is created by next build from the standalone output
+# https://nextjs.org/docs/pages/api-reference/next-config-js/output
 CMD ["node", "server.js"]

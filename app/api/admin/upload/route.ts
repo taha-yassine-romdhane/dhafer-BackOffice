@@ -1,8 +1,7 @@
 // app/api/admin/upload/route.ts
 import { NextResponse } from 'next/server';
 import imagekit from '@/lib/imagekit-config';
-import sharp from 'sharp';
-
+// Remove Sharp dependency and use the Python microservice instead
 
 
 export async function POST(request: Request) {
@@ -28,35 +27,47 @@ export async function POST(request: Request) {
       console.log(`Original file size: ${buffer.length / 1024 / 1024} MB`);
       console.log(`File type: ${file.type}`);
       
-      // Process image with Sharp
+      // Process image with Python microservice
       let processedImageBuffer;
       try {
-        // Get image metadata to preserve orientation
-        const metadata = await sharp(buffer).metadata();
+        console.log('Sending image to compression microservice...');
         
-        // Use Sharp to process the image while maintaining original orientation
-        let sharpInstance = sharp(buffer)
-          .resize(1920, 1920, { 
-            fit: 'inside', 
-            withoutEnlargement: true,
-            position: 'centre' // Center the image if it needs cropping
-          })
-          .toFormat('png') // Convert to PNG for better quality
-          .png({ quality: 85 }); // Set PNG quality
+        // Create form data for the microservice request
+        const formData = new FormData();
+        formData.append('image', new Blob([buffer]), file.name);
+        formData.append('max_width', '1920');
+        formData.append('max_height', '1920');
+        formData.append('quality', '85');
+        formData.append('format', 'PNG');
         
-        // Preserve original orientation/rotation if available
-        if (metadata.orientation) {
-          sharpInstance = sharpInstance.rotate(); // Auto-rotate based on orientation metadata
+        // Send request to the Python microservice
+        const response = await fetch('http://localhost:8000/compress', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Microservice error: ${response.status} ${response.statusText}`);
         }
         
-        // Generate the final buffer
-        processedImageBuffer = await sharpInstance.toBuffer();
-          
-        console.log(`Processed file size: ${processedImageBuffer.length / 1024 / 1024} MB`);
-      } catch (sharpError) {
-        console.error('Error processing image with Sharp:', sharpError);
-        // Fallback to original buffer if Sharp processing fails
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(`Compression failed: ${result.error}`);
+        }
+        
+        // Convert base64 back to buffer
+        processedImageBuffer = Buffer.from(result.image_base64, 'base64');
+        
+        console.log(`Original size: ${result.original_size_kb.toFixed(2)} KB`);
+        console.log(`Compressed size: ${result.compressed_size_kb.toFixed(2)} KB`);
+        console.log(`Compression ratio: ${result.compression_ratio}`);
+        console.log(`New dimensions: ${result.width}x${result.height}`);
+      } catch (error) {
+        console.error('Error processing image with microservice:', error);
+        // Fallback to original buffer if microservice processing fails
         processedImageBuffer = buffer;
+        console.log('Using original image due to microservice error');
       }
       
       // Create a unique filename - ensure it's properly formatted
@@ -133,5 +144,4 @@ export async function POST(request: Request) {
   }
 }
 
-// New route segment configuration
-export const dynamic = 'force-dynamic'; // Ensure the route is dynamic
+export const dynamic = 'force-dynamic'; 

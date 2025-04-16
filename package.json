@@ -64,6 +64,7 @@
     "imagemin-mozjpeg": "^10.0.0",
     "imagemin-pngquant": "^10.0.0",
     "input-otp": "^1.2.4",
+    "jimp": "^1.6.0",
     "lucide-react": "^0.468.0",
     "next": "13.5.1",
     "next-sitemap": "^4.2.3",
