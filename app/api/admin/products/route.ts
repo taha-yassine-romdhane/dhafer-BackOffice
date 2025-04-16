@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ProductImage ,ColorVariant, Stock } from '@/lib/types';
 
 
 
@@ -12,22 +11,14 @@ export async function POST(request: Request) {
       throw new Error('Invalid colorVariants structure');
     }
 
-    const colorVariants = data.colorVariants.map((variant: ColorVariant) => ({
+    const colorVariants = data.colorVariants.map((variant: any) => ({
       color: variant.color,
       images: {
-        create: Array.isArray(variant.images) ? variant.images.map((image: ProductImage, index: number) => ({
+        create: Array.isArray(variant.images) ? variant.images.map((image: any, index: number) => ({
           url: image.url,
-          isMain: index === 0, // Set the first image as main
-          position: image.position,
-          colorVariantId: variant.id
+          isMain: image.isMain || index === 0, // Set the first image as main if not specified
+          position: image.position || (index === 0 ? 'front' : index === 1 ? 'back' : 'side'),
         })) : [],
-      },
-      stocks: {
-        create: variant.stocks.map((stock : Stock) => ({
-          quantity: stock.quantity,
-          size: stock.size,
-          colorId: stock.colorId
-        }))
       }
     }));
 
@@ -47,30 +38,34 @@ export async function POST(request: Request) {
       include: {
         colorVariants: {
           include: {
-            images: true,
-            stocks: true
+            images: true
           }
         }
       }
     });
 
-    const locations = ["Jammel", "tunis", "sousse", "online"];
-    const initialQuantity = 5;
-
+    // Create stock entries for each size/color combination
     for (const variant of product.colorVariants) {
-      for (const size of data.sizes) { 
-        for (const location of locations) {
-          await prisma.stock.create({
-            data: {
-              quantity: initialQuantity,
-              size: size,
-              location: location,
-              colorId: variant.id, 
-              productId: product.id, 
-            },
-          });
-        }
-      }
+      // Prepare stock data for all sizes at once
+      const stockData = data.sizes.map((size: string) => {
+        // Find if there's a stock configuration for this variant and size in the submitted data
+        const stockConfig = data.colorVariants
+          .find((cv: { color: string, stocks: any[] }) => cv.color === variant.color)?.stocks
+          ?.find((s: { size: string }) => s.size === size);
+        
+        return {
+          inStock: stockConfig?.inStock ?? false, // Use nullish coalescing to default to false
+          size: size,
+          colorId: variant.id,
+          productId: product.id,
+        };
+      });
+
+      // Create all stocks for this variant in a single database operation
+      await prisma.stock.createMany({
+        data: stockData,
+        skipDuplicates: true, // Skip if a stock with the same unique constraint already exists
+      });
     }
 
     return NextResponse.json({ 

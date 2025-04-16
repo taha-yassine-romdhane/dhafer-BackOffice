@@ -21,15 +21,13 @@ export interface ColorVariant {
 
 export interface Stock {
   id: number;
-  location: 'Jammel' | 'tunis' | 'sousse' | 'online';
-  quantity: number;
-  productId: number;
+  inStock: boolean;
   size: string;
   colorId: number;
+  productId: number;
   createdAt: Date;
   updatedAt: Date;
 }
-
 export interface Product {
   id: number;
   name: string;

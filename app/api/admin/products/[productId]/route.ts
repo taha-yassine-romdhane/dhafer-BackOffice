@@ -9,9 +9,15 @@ interface UpdateProductImage {
   position: string;
 }
 
+interface UpdateStockData {
+  size: string;
+  inStock?: boolean;
+}
+
 interface UpdateColorVariant {
   color: string;
   images: UpdateProductImage[];
+  stocks?: UpdateStockData[];
 }
 
 interface UpdateProductData {
@@ -119,26 +125,30 @@ export async function PUT(
           );
 
           if (sizeChanged) {
-            const locations = ["Jammel", "tunis", "sousse", "online"] as const;
-            type Location = typeof locations[number];
-
             // Create new stocks for new sizes
             const newStocksData = data.sizes
               .filter((size: string) => 
-                !existingVariant.stocks.some((stock: Stock) => stock.size === size)
+                !existingVariant.stocks.some((stock: any) => stock.size === size)
               )
-              .flatMap((size: string) => 
-                locations.map((location: Location) => ({
-                  quantity: 5,
+              .map((size: string) => {
+                // Find if there's a stock configuration for this variant and size in the submitted data
+                const stockConfig = data.colorVariants
+                  .find((cv: { color: string, stocks?: any[] }) => cv.color === existingVariant.color)?.stocks
+                  ?.find((s: { size: string }) => s.size === size);
+
+                return {
+                  inStock: stockConfig?.inStock ?? false, // Use nullish coalescing to default to false
                   size,
-                  location,
                   colorId: existingVariant.id,
                   productId: product.id
-                }))
-              );
+                };
+              });
 
             if (newStocksData.length > 0) {
-              await prisma.stock.createMany({ data: newStocksData });
+              await prisma.stock.createMany({ 
+                data: newStocksData,
+                skipDuplicates: true // Skip if a stock with the same unique constraint already exists
+              });
             }
 
             // Remove stocks for removed sizes
@@ -175,20 +185,25 @@ export async function PUT(
             }
           });
 
-          // Create stocks for new variant
-          const locations = ["Jammel", "tunis", "sousse", "online"] as const;
-          type Location = typeof locations[number];
-          
+          // Prepare stock data for all sizes
+          const stockData = data.sizes.map((size: string) => {
+            // Find if there's a stock configuration for this variant and size in the submitted data
+            const stockConfig = data.colorVariants
+              .find((cv: { color: string, stocks?: any[] }) => cv.color === variantData.color)?.stocks
+              ?.find((s: { size: string }) => s.size === size);
+            
+            return {
+              inStock: stockConfig?.inStock ?? false, // Use nullish coalescing to default to false
+              size,
+              colorId: newVariant.id,
+              productId: product.id
+            };
+          });
+
+          // Create all stocks for this variant in a single database operation
           await prisma.stock.createMany({
-            data: data.sizes.flatMap((size: string) => 
-              locations.map((location: Location) => ({
-                quantity: 5,
-                size,
-                location,
-                colorId: newVariant.id,
-                productId: product.id
-              }))
-            )
+            data: stockData,
+            skipDuplicates: true // Skip if a stock with the same unique constraint already exists
           });
         }
       }

@@ -18,12 +18,23 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch('/api/admin/products');
       if (!response.ok) throw new Error('Failed to fetch products');
       const data = await response.json();
-      setProducts(data);
+      
+      // Check if the response has a products array property
+      if (data.success && Array.isArray(data.products)) {
+        setProducts(data.products);
+      } else if (Array.isArray(data)) {
+        // Fallback for direct array response
+        setProducts(data);
+      } else {
+        console.error('Unexpected API response format:', data);
+        setProducts([]);
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }

@@ -6,13 +6,37 @@ import { Product } from '@/lib/types';
 import { ProductStockDetail } from '@/components/ProductStockDetail';
 import { format } from 'date-fns';
 
-const LOCATIONS = ["Jammel", "tunis", "sousse", "online"] as const;
-type Location = typeof LOCATIONS[number];
+// Define local interfaces for the stock management page
+interface StockItem {
+  id: number;
+  inStock: boolean;
+  size: string;
+  colorId: number;
+  updatedAt: Date;
+}
+
+interface ColorVariantWithStocks {
+  id: number;
+  color: string;
+  images: {
+    id: number;
+    url: string;
+    isMain: boolean;
+    ufsUrl?: string;
+  }[];
+  stocks: StockItem[];
+}
+
+interface ProductWithStocks {
+  id: number;
+  name: string;
+  colorVariants: ColorVariantWithStocks[];
+}
 
 export default function StockManagementPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithStocks[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithStocks | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState<{
     type: 'success' | 'error' | null;
@@ -54,20 +78,21 @@ export default function StockManagementPage() {
   };
 
   // Calculate stock summary for a product
-  const calculateStockSummary = (product: Product) => {
-    let totalQuantity = 0;
-    let lowStock = false;
-    let outOfStock = false;
+  const calculateStockSummary = (product: ProductWithStocks) => {
+    let inStockCount = 0;
+    let outOfStockCount = 0;
 
     product.colorVariants.forEach(variant => {
       variant.stocks.forEach(stock => {
-        totalQuantity += stock.quantity;
-        if (stock.quantity === 0) outOfStock = true;
-        if (stock.quantity > 0 && stock.quantity < 5) lowStock = true;
+        if (stock.inStock) {
+          inStockCount++;
+        } else {
+          outOfStockCount++;
+        }
       });
     });
 
-    return { totalQuantity, lowStock, outOfStock };
+    return { inStockCount, outOfStockCount };
   };
 
   return (
@@ -102,8 +127,8 @@ export default function StockManagementPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
       ) : selectedProduct ? (
-        <ProductStockDetail 
-          product={selectedProduct}
+        <ProductStockDetail
+          product={selectedProduct as any}
           onUpdate={fetchStocks}
           onBack={() => setSelectedProduct(null)}
         />
@@ -117,10 +142,10 @@ export default function StockManagementPage() {
                     Product
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Stock
+                    In Stock
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Out of Stock
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Last Updated
@@ -154,6 +179,21 @@ export default function StockManagementPage() {
                                 src={product.colorVariants[0].images[0].url}
                                 alt={product.name}
                                 className="w-10 h-10 rounded-full mr-3 object-cover"
+                                onError={(e) => {
+                                  // If the image fails to load, try the ufsUrl property if available
+                                  const target = e.target as HTMLImageElement;
+                                  const image = product.colorVariants[0].images[0];
+                                  
+                                  // Try to use the ufsUrl from UploadThing if the regular URL fails
+                                  if (image.url.includes('uploadthing')) {
+                                    // Already using UploadThing URL, use a placeholder
+                                    target.src = "https://via.placeholder.com/150?text=No+Image";
+                                  } else {
+                                    // Try to transform the URL to a Cloudinary URL with proper sizing
+                                    const cloudinaryUrl = image.url.replace('upload/', 'upload/w_150,h_150,c_fit/');
+                                    target.src = cloudinaryUrl;
+                                  }
+                                }}
                               />
                             )}
                             <div>
@@ -164,27 +204,13 @@ export default function StockManagementPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.totalQuantity} units
+                            {stockSummary.inStockCount} units
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {stockSummary.outOfStock && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Out of Stock
-                              </span>
-                            )}
-                            {stockSummary.lowStock && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Low Stock
-                              </span>
-                            )}
-                            {!stockSummary.outOfStock && !stockSummary.lowStock && (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                In Stock
-                              </span>
-                            )}
-                          </div>
+                          <span className="text-sm text-gray-900">
+                            {stockSummary.outOfStockCount} units
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {lastUpdated ? format(new Date(lastUpdated), 'MMM d, HH:mm') : 'N/A'}

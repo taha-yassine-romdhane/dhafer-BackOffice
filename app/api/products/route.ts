@@ -1,82 +1,90 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { ProductImage ,ColorVariant, Stock } from '@/lib/types';
+
+
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    console.log('Received product data:', JSON.stringify(data, null, 2));
-    
-    // Create the product
-    const productData = {
-      name: data.name,
-      description: data.description,
-      price: parseFloat(data.price),
-      category: data.category.toLowerCase(),
-      colors: data.colors,
-      sizes: data.sizes,
-      collaborateur: data.collaborateur,
-      images: {
-        create: data.images.map((imageUrl: string, index: number) => ({
-          url: imageUrl,
-          isMain: index === 0
-        }))
-      }
-    };
+    console.log('Received data:', data);
+    if (!data.colorVariants || !Array.isArray(data.colorVariants)) {
+      throw new Error('Invalid colorVariants structure');
+    }
 
-    console.log('Processed product data:', JSON.stringify(productData, null, 2));
+    const colorVariants = data.colorVariants.map((variant: any) => ({
+      color: variant.color,
+      images: {
+        create: Array.isArray(variant.images) ? variant.images.map((image: any, index: number) => ({
+          url: image.url,
+          isMain: image.isMain || index === 0, // Set the first image as main if not specified
+          position: image.position || (index === 0 ? 'front' : index === 1 ? 'back' : 'side'),
+        })) : [],
+      }
+    }));
 
     const product = await prisma.product.create({
-      data: productData,
-
+      data: {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        salePrice: data.salePrice,
+        category: data.category,
+        sizes: data.sizes,
+        collaborateur: data.collaborateur,
+        colorVariants: {
+          create: colorVariants
+        }
+      },
+      include: {
+        colorVariants: {
+          include: {
+            images: true
+          }
+        }
+      }
     });
 
-    console.log('Created product:', JSON.stringify(product, null, 2));
-    return NextResponse.json(product);
+    // Create stock entries for each size/color combination
+    for (const variant of product.colorVariants) {
+      for (const size of data.sizes) {
+        // Find if there's a stock configuration for this variant and size in the submitted data
+        const stockConfig = data.colorVariants
+          .find((cv: { color: string, stocks: any[] }) => cv.color === variant.color)?.stocks
+          .find((s: { size: string }) => s.size === size);
+        
+        // Create the stock entry with the provided inStock status or default to false
+        await prisma.stock.create({
+          data: {
+            inStock: stockConfig?.inStock || false,
+            size: size,
+            colorId: variant.id,
+            productId: product.id,
+          },
+        });
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      product 
+    });
   } catch (error) {
-    console.error("Error creating product:", error);
+    console.error('Error creating product:', error);
     return NextResponse.json(
-      { error: "Failed to create product" },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to create product' 
+      },
       { status: 500 }
     );
   }
 }
 
-export async function GET(request: Request) {
+// GET route remains the same
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
-    const sort = searchParams.get("sort");
-    const product = searchParams.get("product");
-
-    let where: any = {};
-
-    // Category filter
-    if (category && category !== "all") {
-      where.category = {
-        equals: category.toLowerCase(),
-        mode: 'insensitive'
-      };
-    }
-
-  
-
-    // Product name filter
-    if (product) {
-      const productName = product
-        .split("-")
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ")
-        .replace(/-/g, " ");
-      
-      where.name = {
-        contains: productName,
-        mode: 'insensitive'
-      };
-    }
-
-    // Get products with their color variants and images
     const products = await prisma.product.findMany({
-      where,
       include: {
         colorVariants: {
           include: {
@@ -84,20 +92,24 @@ export async function GET(request: Request) {
           }
         }
       },
-      orderBy: sort === "price-asc" 
-        ? { price: "asc" }
-        : sort === "price-desc"
-        ? { price: "desc" }
-        : sort === "newest"
-        ? { createdAt: "desc" }
-        : { id: "asc" }
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
-    return NextResponse.json(products);
+    // Return with success flag and products array
+    return NextResponse.json({
+      success: true,
+      products: products
+    });
+
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error('Error fetching products:', error);
     return NextResponse.json(
-      { error: "Failed to fetch products" },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch products'
+      },
       { status: 500 }
     );
   }

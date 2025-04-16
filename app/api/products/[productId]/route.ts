@@ -79,26 +79,23 @@ export async function PUT(
 
       console.log(`Images to be created for color variant ${variant.color}:`, JSON.stringify(images, null, 2));
 
-      // Create new stocks for the color variant
-      const stocks = data.sizes.flatMap((size: string) =>
-        ["Jammel", "tunis", "sousse", "online"].map(location => ({
-          quantity: 5,
-          size: size,
-          location: location,
-          colorId: colorVariantId,
-          productId: productId, // Ensure productId is included here
-        }))
-      );
-
-      console.log(`Stocks to be created for color variant ${variant.color}:`, JSON.stringify(stocks, null, 2));
-
-      // Create images and stocks in the database
+      // Create images in the database
       await prisma.productImage.createMany({
         data: images,
       });
 
+      // Create stock entries for each size
+      const stockData = data.sizes.map((size: string) => ({
+        inStock: false, // Default to false for new color variants
+        size,
+        colorId: colorVariantId,
+        productId: productId
+      }));
+
+      // Create all stocks for this variant in a single database operation
       await prisma.stock.createMany({
-        data: stocks,
+        data: stockData,
+        skipDuplicates: true // Skip if a stock with the same unique constraint already exists
       });
 
       console.log(`Created color variant: ${JSON.stringify(newVariant, null, 2)}`);
@@ -111,7 +108,6 @@ export async function PUT(
         colorVariants: {
           include: {
             images: true,
-            stocks: true,
           }
         }
       }

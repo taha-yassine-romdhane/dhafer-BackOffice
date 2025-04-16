@@ -17,7 +17,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Gestion de stock', href: '/admin/stock', icon: BarChart },
     { name: 'Affichage des produits', href: '/admin/product-display', icon: LayoutDashboard },
-    { name: 'Statistiques', href: '/admin/stats', icon: BarChart },
     { name: 'Clients', href: '/admin/clients', icon: User },
     { name: 'Contactes', href: '/admin/contacts', icon: MessageCircleIcon },
   ];
@@ -25,11 +24,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <AdminAuth>
       <div className="flex min-h-screen bg-gray-100">
-        <aside className="hidden w-64 shrink-0 border-r bg-white md:block">
-          <div className="flex h-14 items-center border-b px-4">
-            <h1 className="text-lg font-semibold">Administration</h1>
+        <aside className="group hidden md:block border-r bg-white transition-all duration-300 hover:w-64 w-16 shrink-0 overflow-hidden">
+          <div className="flex h-14 items-center border-b px-4 justify-center group-hover:justify-start overflow-hidden">
+            <h1 className="text-lg font-semibold truncate">Administration</h1>
           </div>
-          <nav className="grid items-start px-2 py-4 text-sm font-medium">
+          <nav className="flex flex-col gap-1 px-2 py-4 text-sm font-medium">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -38,10 +37,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   pathname === item.href
                     ? 'bg-blue-100 text-blue-900'
                     : 'text-gray-600 hover:bg-gray-50'
-                } flex items-center gap-3 rounded-lg px-3 py-2 transition-all`}
+                } flex items-center rounded-lg px-3 py-2 transition-all`}
               >
-                <item.icon className="h-5 w-5" />
-                {item.name}
+                <div className="flex justify-center items-center w-6">
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                </div>
+                <span className="ml-3 overflow-hidden whitespace-nowrap transition-all duration-300 opacity-0 group-hover:opacity-100">{item.name}</span>
               </Link>
             ))}
           </nav>

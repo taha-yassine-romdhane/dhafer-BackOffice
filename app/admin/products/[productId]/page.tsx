@@ -208,20 +208,6 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             const { images: uploadedImages } = await uploadResponse.json();
             images = [...images, ...uploadedImages];
           }
-
-          const locations = ["Jammel", "tunis", "sousse", "online"] as const;
-
-          // Create stocks data
-          const stocksData = formData.sizes.flatMap(size =>
-            locations.map(location => ({
-              quantity: 5, // Default quantity
-              size: size,
-              location: location
-            }))
-          );
-          
-          console.log('Stocks Data:', stocksData);
-
           // Add before returning the variant
           console.log('Color Variant being created:', {
             color: colorVariant.color,
@@ -232,9 +218,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 position: img.position
               }))
             },
-            stocks: {
-              create: stocksData
-            }
+            
           });
 
           // Create the variant with the correct structure
@@ -246,9 +230,6 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                 isMain: img.isMain || false,
                 position: img.position
               }))
-            },
-            stocks: {
-              create: stocksData // Use stocksData directly here
             }
           };
         })

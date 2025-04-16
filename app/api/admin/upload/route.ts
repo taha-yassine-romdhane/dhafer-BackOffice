@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import imagekit from '@/lib/imagekit-config';
 
+
+
 export async function POST(request: Request) {
   try {
     console.log('Starting file upload to ImageKit...');
@@ -18,9 +20,11 @@ export async function POST(request: Request) {
       
       console.log(`Processing file: ${file.name}, position: ${position}, type: ${file.type}`);
       
-      // Convert File to Buffer
+      // Convert File to Buffer directly (no compression for now)
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
+      
+      console.log(`File size: ${buffer.length / 1024 / 1024} MB`);
       
       // Create a unique filename - ensure it's properly formatted
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -29,15 +33,26 @@ export async function POST(request: Request) {
       const fileName = `${position}-${uniqueSuffix}-${cleanFileName}`;
       
       try {
-        // Upload to ImageKit directly with the buffer
+        // Upload to ImageKit with optimization parameters
         // ImageKit SDK expects a buffer or a readable stream for the file parameter
         const uploadResponse = await imagekit.upload({
           file: buffer,
           fileName: fileName,
           folder: '/products',
           tags: [position],
-          useUniqueFileName: false
+          useUniqueFileName: false,
+          // Add transformation parameters for optimization
+          transformation: {
+            pre: 'q-85', // Set quality to 85% for good balance of quality and file size
+            // Optional: add resize parameters if needed
+            // pre: 'q-85,w-1920,h-1920,c-at_max'
+          }
         });
+
+        // Ensure we have a valid response
+        if (!uploadResponse || typeof uploadResponse !== 'object') {
+          throw new Error('Invalid response from ImageKit');
+        }
 
         console.log(`File uploaded successfully to ImageKit. URL: ${uploadResponse.url}`);
         
