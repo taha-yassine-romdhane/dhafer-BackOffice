@@ -14,7 +14,7 @@ COPY package.json package-lock.json* ./
 COPY prisma ./prisma
 
 # Install dependencies including Sharp with the correct platform
-RUN npm ci
+RUN npm install
 RUN npm install --platform=linuxmusl --arch=x64 sharp
 
 # Rebuild the source code only when needed
