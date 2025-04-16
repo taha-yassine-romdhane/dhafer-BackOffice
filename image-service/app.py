@@ -5,8 +5,9 @@ from PIL import Image, ImageOps, ExifTags
 import io
 import uvicorn
 import os
-from typing import List, Optional
+from typing import Optional
 import logging
+import math
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,43 +17,95 @@ app = FastAPI(title="Image Compression Service")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Image Compression Service is running"}
+def optimize_image_quality(img: Image.Image, target_size_kb: int = 2000, max_attempts: int = 5) -> bytes:
+    """
+    Optimize image quality to stay under target size while maintaining maximum quality.
+    Uses binary search to find the optimal quality setting.
+    """
+    format = img.format or 'JPEG'
+    output_buffer = io.BytesIO()
+    
+    if format.upper() == 'PNG':
+        # For PNG, we'll use optimized compression
+        img.save(output_buffer, format='PNG', optimize=True, compress_level=9)
+        result = output_buffer.getvalue()
+        
+        # If still too large, try converting to WebP
+        if len(result) > target_size_kb * 1024:
+            output_buffer = io.BytesIO()
+            img.save(output_buffer, format='WEBP', quality=95, method=6)
+            result = output_buffer.getvalue()
+            format = 'WEBP'
+            
+        return result, format
+    
+    # For JPEG/WebP, we'll use quality adjustment
+    low = 50
+    high = 95
+    best_result = None
+    best_quality = None
+    
+    for _ in range(max_attempts):
+        quality = (low + high) // 2
+        output_buffer = io.BytesIO()
+        
+        if format.upper() == 'JPEG':
+            img.save(output_buffer, format='JPEG', quality=quality, optimize=True, progressive=True)
+        else:
+            img.save(output_buffer, format='WEBP', quality=quality, method=6)
+            
+        current_size = len(output_buffer.getvalue())
+        
+        if current_size <= target_size_kb * 1024:
+            best_result = output_buffer.getvalue()
+            best_quality = quality
+            low = quality + 1  # Try higher quality
+        else:
+            high = quality - 1  # Try lower quality
+            
+        if low > high:
+            break
+    
+    # If we didn't find a suitable quality, use the best we have
+    if best_result is None:
+        quality = 85  # Default fallback
+        output_buffer = io.BytesIO()
+        if format.upper() == 'JPEG':
+            img.save(output_buffer, format='JPEG', quality=quality, optimize=True, progressive=True)
+        else:
+            img.save(output_buffer, format='WEBP', quality=quality, method=6)
+        best_result = output_buffer.getvalue()
+        format = 'WEBP' if format.upper() != 'JPEG' else 'JPEG'
+    
+    return best_result, format
 
 @app.post("/compress")
 async def compress_image(
     image: UploadFile = File(...),
-    quality: Optional[int] = Form(85),
-    format: Optional[str] = Form("JPEG"),  # JPEG for better compression
-    preserve_resolution: Optional[bool] = Form(True)  # Always preserve original resolution
+    max_size_mb: Optional[float] = Form(2.0)  # Maximum size in MB
 ):
     try:
-        logging.info(f"Processing image: {image.filename}, format: {format}, quality: {quality}")
+        logging.info(f"Processing image: {image.filename}, max size: {max_size_mb}MB")
         
         # Read the uploaded image
         contents = await image.read()
         input_image = Image.open(io.BytesIO(contents))
         
-        # Get original size and format
+        # Get original metadata
         original_width, original_height = input_image.size
         original_size = len(contents)
-        original_format = input_image.format
+        original_format = input_image.format or "UNKNOWN"
         original_mode = input_image.mode
         
-        logging.info(f"Original image: {original_width}x{original_height}, {original_size/1024:.2f}KB, format: {original_format}, mode: {original_mode}")
+        logging.info(f"Original: {original_width}x{original_height}, {original_size/1024:.2f}KB, {original_format}, {original_mode}")
         
-        # Preserve the original image mode if possible
-        # This helps maintain color profiles and transparency
-        target_mode = original_mode
-        
-        # Fix orientation based on EXIF data using ImageOps for better handling
+        # Fix orientation based on EXIF data
         try:
             if hasattr(input_image, '_getexif') and input_image._getexif() is not None:
                 input_image = ImageOps.exif_transpose(input_image)
@@ -60,65 +113,33 @@ async def compress_image(
         except Exception as e:
             logging.warning(f"Could not process EXIF data: {str(e)}")
         
-        # Keep the original resolution - no resizing
-        logging.info(f"Preserving original resolution: {original_width}x{original_height}")
-        
-        # Determine the best output format
-        output_format = format.upper()
-        
-        # If original is PNG with transparency and output is JPEG, we need to handle transparency
-        if 'A' in input_image.mode and output_format == 'JPEG':
-            # Create a white background
+        # Handle transparency if converting to JPEG
+        if 'A' in input_image.mode and original_format.upper() != 'JPEG':
             background = Image.new('RGB', input_image.size, (255, 255, 255))
-            # Paste the image on the background using alpha channel as mask
             background.paste(input_image, mask=input_image.split()[3] if 'A' in input_image.mode else None)
             input_image = background
-            logging.info("Converted transparent image to white background for JPEG output")
+            logging.info("Converted transparent image to white background")
         
-        # Save the processed image to a BytesIO object
-        output_buffer = io.BytesIO()
+        # Optimize the image to stay under max size
+        compressed_image, output_format = optimize_image_quality(
+            input_image, 
+            target_size_kb=max_size_mb * 1024
+        )
         
-        # Save with optimized settings for maximum compression while preserving quality
-        save_options = {
-            'format': output_format,
-            'optimize': True
-        }
-        
-        # Add format-specific options for better compression
-        if output_format == 'PNG':
-            # For PNG, use maximum compression level
-            save_options['compress_level'] = 9
-            # Use quantization to reduce colors if needed for large PNGs
-            if original_size > 3 * 1024 * 1024:  # If over 3MB
-                try:
-                    # Quantize to reduce colors while maintaining quality
-                    input_image = input_image.quantize(colors=256, method=2).convert('RGBA')
-                    logging.info("Applied color quantization to reduce PNG size")
-                except Exception as e:
-                    logging.warning(f"Could not quantize image: {str(e)}")
-        elif output_format == 'JPEG':
-            # For JPEG, use optimized quality settings
-            save_options['quality'] = quality
-            save_options['subsampling'] = 2  # Balanced subsampling for better compression
-            save_options['progressive'] = True  # Progressive loading
-            
-            # For larger images, adjust quality based on file size
-            if original_size > 5 * 1024 * 1024:  # If over 5MB
-                save_options['quality'] = min(quality, 80)  # Cap at 80
-            elif original_size > 2 * 1024 * 1024:  # If over 2MB
-                save_options['quality'] = min(quality, 85)  # Cap at 85
-        
-        logging.info(f"Saving with options: {save_options}")
-        input_image.save(output_buffer, **save_options)
-        
-        # Get the compressed image bytes
-        output_buffer.seek(0)
-        compressed_image = output_buffer.getvalue()
         compressed_size = len(compressed_image)
-        
-        # Calculate compression ratio
         compression_ratio = (1 - (compressed_size / original_size)) * 100
-        logging.info(f"Compression result: {compressed_size/1024:.2f}KB, ratio: {compression_ratio:.2f}%")
+        
+        logging.info(f"Compressed to: {compressed_size/1024:.2f}KB ({compression_ratio:.2f}% reduction) as {output_format}")
+        
+        # If still too large (shouldn't happen with our algorithm), force WebP
+        if compressed_size > max_size_mb * 1024 * 1024:
+            output_buffer = io.BytesIO()
+            input_image.save(output_buffer, format='WEBP', quality=50, method=6)
+            compressed_image = output_buffer.getvalue()
+            output_format = 'WEBP'
+            compressed_size = len(compressed_image)
+            compression_ratio = (1 - (compressed_size / original_size)) * 100
+            logging.warning(f"Had to force WebP to meet size requirements: {compressed_size/1024:.2f}KB")
         
         # Convert to base64 for response
         import base64
@@ -129,15 +150,14 @@ async def compress_image(
             "original_size_kb": original_size / 1024,
             "compressed_size_kb": compressed_size / 1024,
             "compression_ratio": f"{compression_ratio:.2f}%",
-            "width": input_image.width,
-            "height": input_image.height,
+            "width": original_width,
+            "height": original_height,
             "format": output_format,
             "image_base64": base64_image,
             "original_format": original_format,
             "original_mode": original_mode
         }
         
-        logging.info(f"Successfully processed image: {image.filename}")
         return response_data
         
     except Exception as e:
