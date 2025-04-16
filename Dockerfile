@@ -1,69 +1,79 @@
+# 1️⃣ Base image with Debian (NOT Alpine!)
 FROM node:18-slim AS base
 
-# Install dependencies only when needed
+# 2️⃣ Install build dependencies (for Sharp and others)
 FROM base AS deps
 WORKDIR /app
 
-# Install dependencies required for Sharp
-RUN apk add --no-cache build-base gcc autoconf automake libtool nasm vips-dev
+# Install system packages
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  gcc \
+  autoconf \
+  automake \
+  libtool \
+  nasm \
+  libvips-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-# Copy package.json and package-lock.json
+# Copy package files
 COPY package.json package-lock.json* ./
 
-# Copy the prisma directory
+# Copy Prisma directory
 COPY prisma ./prisma
 
-# Install dependencies including Sharp with the correct platform
+# Install node dependencies
 RUN npm install
-RUN npm install --cpu=x64 --os=linux sharp
 
-# Rebuild the source code only when needed
+# 3️⃣ Build the app
 FROM base AS builder
 WORKDIR /app
+
+# Copy deps from previous stage
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy all app source code
 COPY . .
 
-# Ensure the .env file is copied for Prisma to use
+# Copy .env for Prisma
 COPY .env .env
 
 # Generate Prisma client
 RUN npx prisma generate --schema=./prisma/schema.prisma
 
-# Build Next.js based on the preferred package manager
+# Build Next.js app
 RUN npm run build
 
-# Production image, copy all the files and run next
+# 4️⃣ Production image
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Install runtime dependencies for Sharp
-RUN apk add --no-cache vips-dev
+# Install runtime dependency for Sharp
+RUN apt-get update && apt-get install -y libvips-dev && rm -rf /var/lib/apt/lists/*
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Add system user
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser --system --uid 1001 nextjs
 
+# Copy public assets
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Set permissions for .next
+RUN mkdir .next && chown nextjs:nodejs .next
 
-# Automatically leverage output traces to reduce image size
+# Copy standalone build
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
 
 USER nextjs
 
 EXPOSE 3001
+ENV PORT=3001
+ENV HOSTNAME="0.0.0.0"
 
-ENV PORT 3001
-ENV HOSTNAME "0.0.0.0"
-
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
+# Start the app
 CMD ["node", "server.js"]
