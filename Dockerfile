@@ -1,79 +1,44 @@
-# 1️⃣ Base image with Debian (NOT Alpine!)
+# Use Debian instead of Alpine for better native support
 FROM node:18-slim AS base
 
-# 2️⃣ Install build dependencies (for Sharp and others)
-FROM base AS deps
+# Install build dependencies needed for sharp
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    autoconf \
+    automake \
+    libtool \
+    nasm \
+    libvips-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Install system packages
-RUN apt-get update && apt-get install -y \
-  build-essential \
-  gcc \
-  autoconf \
-  automake \
-  libtool \
-  nasm \
-  libvips-dev \
-  && rm -rf /var/lib/apt/lists/*
-
-# Copy package files
+# Copy only package.json and lock file to install deps first
 COPY package.json package-lock.json* ./
 
-# Copy Prisma directory
-COPY prisma ./prisma
+# Install deps (this will install sharp correctly on linux-x64)
+RUN npm ci --include=optional
 
-# Install node dependencies
-RUN npm install
-
-# 3️⃣ Build the app
-FROM base AS builder
-WORKDIR /app
-
-# Copy deps from previous stage
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy all app source code
+# Copy all project files
 COPY . .
 
-# Copy .env for Prisma
+# Copy .env early if needed for prisma
 COPY .env .env
 
-# Generate Prisma client
-RUN npx prisma generate --schema=./prisma/schema.prisma
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Build Next.js app
 RUN npm run build
 
-# 4️⃣ Production image
-FROM base AS runner
-WORKDIR /app
+# Clean up dev dependencies (optional)
+RUN npm prune --production
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Install runtime dependency for Sharp
-RUN apt-get update && apt-get install -y libvips-dev && rm -rf /var/lib/apt/lists/*
-
-# Add system user
-RUN addgroup --system --gid 1001 nodejs \
- && adduser --system --uid 1001 nextjs
-
-# Copy public assets
-COPY --from=builder /app/public ./public
-
-# Set permissions for .next
-RUN mkdir .next && chown nextjs:nodejs .next
-
-# Copy standalone build
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-
-USER nextjs
-
+# Start in production mode
 EXPOSE 3001
-ENV PORT=3001
-ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV production
+ENV HOSTNAME 0.0.0.0
+ENV PORT 3001
 
-# Start the app
 CMD ["node", "server.js"]
