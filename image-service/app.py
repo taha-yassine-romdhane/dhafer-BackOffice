@@ -29,11 +29,9 @@ async def root():
 @app.post("/compress")
 async def compress_image(
     image: UploadFile = File(...),
-    max_width: Optional[int] = Form(1920),
-    max_height: Optional[int] = Form(1920),
     quality: Optional[int] = Form(85),
-    format: Optional[str] = Form("JPEG"),  # Changed default to JPEG for better color preservation
-    preserve_colors: Optional[bool] = Form(True)
+    format: Optional[str] = Form("JPEG"),  # JPEG for better compression
+    preserve_resolution: Optional[bool] = Form(True)  # Always preserve original resolution
 ):
     try:
         logging.info(f"Processing image: {image.filename}, format: {format}, quality: {quality}")
@@ -62,20 +60,8 @@ async def compress_image(
         except Exception as e:
             logging.warning(f"Could not process EXIF data: {str(e)}")
         
-        # Calculate new dimensions while maintaining aspect ratio
-        new_width, new_height = original_width, original_height
-        if original_width > max_width or original_height > max_height:
-            # Calculate the ratio
-            ratio = min(max_width / original_width, max_height / original_height)
-            new_width = int(original_width * ratio)
-            new_height = int(original_height * ratio)
-            
-            logging.info(f"Resizing to: {new_width}x{new_height}")
-            
-            # Resize the image with high quality resampling
-            input_image = input_image.resize((new_width, new_height), Image.LANCZOS)
-        else:
-            logging.info("No resizing needed, image is within size limits")
+        # Keep the original resolution - no resizing
+        logging.info(f"Preserving original resolution: {original_width}x{original_height}")
         
         # Determine the best output format
         output_format = format.upper()
@@ -92,22 +78,35 @@ async def compress_image(
         # Save the processed image to a BytesIO object
         output_buffer = io.BytesIO()
         
-        # Save with the specified format and quality
+        # Save with optimized settings for maximum compression while preserving quality
         save_options = {
             'format': output_format,
-            'quality': quality,
             'optimize': True
         }
         
-        # Add format-specific options
+        # Add format-specific options for better compression
         if output_format == 'PNG':
-            save_options['compress_level'] = 9  # Maximum compression for PNG
-            # Don't set quality for PNG as it's not used
-            if 'quality' in save_options:
-                del save_options['quality']
+            # For PNG, use maximum compression level
+            save_options['compress_level'] = 9
+            # Use quantization to reduce colors if needed for large PNGs
+            if original_size > 3 * 1024 * 1024:  # If over 3MB
+                try:
+                    # Quantize to reduce colors while maintaining quality
+                    input_image = input_image.quantize(colors=256, method=2).convert('RGBA')
+                    logging.info("Applied color quantization to reduce PNG size")
+                except Exception as e:
+                    logging.warning(f"Could not quantize image: {str(e)}")
         elif output_format == 'JPEG':
-            save_options['subsampling'] = 0  # Best quality subsampling
+            # For JPEG, use optimized quality settings
+            save_options['quality'] = quality
+            save_options['subsampling'] = 2  # Balanced subsampling for better compression
             save_options['progressive'] = True  # Progressive loading
+            
+            # For larger images, adjust quality based on file size
+            if original_size > 5 * 1024 * 1024:  # If over 5MB
+                save_options['quality'] = min(quality, 80)  # Cap at 80
+            elif original_size > 2 * 1024 * 1024:  # If over 2MB
+                save_options['quality'] = min(quality, 85)  # Cap at 85
         
         logging.info(f"Saving with options: {save_options}")
         input_image.save(output_buffer, **save_options)
