@@ -15,7 +15,7 @@ COPY prisma ./prisma
 
 # Install dependencies including Sharp with the correct platform
 RUN npm install
-RUN npm install --platform=linuxmusl --arch=x64 sharp
+RUN npm install --cpu=x64 --os=linux sharp
 
 # Rebuild the source code only when needed
 FROM base AS builder
