@@ -26,7 +26,9 @@ async def root():
 async def compress_image(
     image: UploadFile = File(...),
     quality: Optional[int] = Form(85),
-    format: Optional[str] = Form("PNG")
+    format: Optional[str] = Form("PNG"),
+    max_width: Optional[int] = Form(1920),
+    max_height: Optional[int] = Form(1920)
 ):
     try:
         # Read the uploaded image
