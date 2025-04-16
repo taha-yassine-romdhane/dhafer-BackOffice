@@ -55,16 +55,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const stock = product.colorVariants[0].stocks[0];
 
-      if (!stock || stock.quantity < item.quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for product ${item.productId} (${item.color}, ${item.size})` },
-          { status: 400 }
-        );
-      }
-
-  
 
       // Assign the found colorVariantId
       item.colorVariantId = product.colorVariants[0].id;
