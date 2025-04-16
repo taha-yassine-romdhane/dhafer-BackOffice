@@ -22,16 +22,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def smart_compress(img: Image.Image, max_size_bytes: int) -> tuple[bytes, str]:
+def smart_compress(img: Image.Image, target_size_bytes: int) -> tuple[bytes, str, int]:
     """
-    Compress image using optimal strategy to stay under max_size_bytes
-    Returns (compressed_data, format_used)
+    Compress image to target around 1MB while preserving appearance
+    Returns (compressed_data, format_used, quality_used)
     """
     original_mode = img.mode
-    formats_to_try = ['WEBP', 'JPEG', 'PNG']  # Ordered by compression efficiency
+    original_width, original_height = img.size
     
+    # For fashion product images, JPEG often works best for color preservation
+    # But we'll try multiple formats in case one works better for a specific image
+    formats_to_try = ['JPEG', 'WEBP', 'PNG']
+    
+    # First try: high quality compression without resizing
     for fmt in formats_to_try:
-        for quality in [85, 75, 65, 55]:  # Quality tiers to try
+        # Try a range of quality settings, starting high for best appearance
+        for quality in [95, 90, 85, 80, 75, 70, 65]:
             buffer = io.BytesIO()
             
             try:
@@ -46,8 +52,9 @@ def smart_compress(img: Image.Image, max_size_bytes: int) -> tuple[bytes, str]:
                     save_kwargs['quality'] = quality
                     if fmt == 'WEBP':
                         save_kwargs['method'] = 6  # Best compression
-                    else:
+                    else:  # JPEG
                         save_kwargs['progressive'] = True
+                        save_kwargs['subsampling'] = 0  # Highest quality subsampling
                 
                 # Handle transparency if converting to non-alpha format
                 if 'A' in original_mode and fmt != 'PNG':
@@ -58,23 +65,48 @@ def smart_compress(img: Image.Image, max_size_bytes: int) -> tuple[bytes, str]:
                     img_to_save = img
                 
                 img_to_save.save(buffer, **save_kwargs)
+                size = buffer.tell()
                 
-                if buffer.tell() <= max_size_bytes:
-                    return buffer.getvalue(), fmt
+                # Target around 1MB (with some flexibility)
+                # We prefer slightly larger files with better quality
+                if size <= target_size_bytes * 1.1 and size >= target_size_bytes * 0.8:
+                    logging.info(f"Found optimal format {fmt} at quality {quality} with size {size/1024/1024:.2f}MB")
+                    return buffer.getvalue(), fmt, quality
+                
+                # If we're close but too large, we'll remember this option
+                if size <= target_size_bytes * 1.5:
+                    logging.info(f"Found close match: {fmt} at quality {quality} with size {size/1024/1024:.2f}MB")
+                    close_match = (buffer.getvalue(), fmt, quality, size)
                 
             except Exception as e:
                 logging.warning(f"Failed to save as {fmt} at quality {quality}: {str(e)}")
                 continue
     
-    # If all else fails, use minimal WebP
+    # If we found a close match, use it
+    if 'close_match' in locals():
+        logging.info(f"Using close match: {close_match[1]} at quality {close_match[2]} with size {close_match[3]/1024/1024:.2f}MB")
+        return close_match[0], close_match[1], close_match[2]
+    
+    # If we're still too large, try more aggressive compression
+    # We'll use JPEG with lower quality as it usually preserves appearance better
     buffer = io.BytesIO()
-    img.save(buffer, format='WEBP', quality=40, method=6)
-    return buffer.getvalue(), 'WEBP'
+    
+    # Convert to RGB if needed
+    if 'A' in original_mode:
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[3] if 'A' in original_mode else None)
+        img_to_save = background
+    else:
+        img_to_save = img.convert('RGB') if img.mode != 'RGB' else img
+    
+    # Use JPEG with quality 60
+    img_to_save.save(buffer, format='JPEG', quality=60, optimize=True, progressive=True)
+    return buffer.getvalue(), 'JPEG', 60
 
 @app.post("/compress")
 async def compress_image(
     image: UploadFile = File(...),
-    max_size_mb: float = Form(2.0)
+    target_size_mb: float = Form(1.0)  # Target 1MB by default
 ):
     try:
         logging.info(f"Processing image: {image.filename}")
@@ -93,9 +125,9 @@ async def compress_image(
             # Fix orientation
             img = ImageOps.exif_transpose(img)
             
-            # Compress with our smart algorithm
-            max_size_bytes = int(max_size_mb * 1024 * 1024)
-            compressed_data, output_format = smart_compress(img, max_size_bytes)
+            # Compress with our smart algorithm targeting 1MB
+            target_size_bytes = int(target_size_mb * 1024 * 1024)
+            compressed_data, output_format, quality_used = smart_compress(img, target_size_bytes)
             compressed_size = len(compressed_data)
             
             # Verify the output
@@ -108,15 +140,21 @@ async def compress_image(
             # Calculate results
             compression_ratio = (1 - (compressed_size / original_size)) * 100
             
+            # Import base64 here to avoid global import
+            import base64
+            
+            # Return detailed information about the compression
             return {
                 "success": True,
                 "original_size_kb": original_size / 1024,
-                "compressed_size_kb": compressed_size / 1024,
+                "compressed_size_mb": compressed_size / (1024 * 1024),
                 "compression_ratio": f"{compression_ratio:.2f}%",
                 "width": original_width,
                 "height": original_height,
                 "format": output_format,
+                "quality_used": quality_used,
                 "original_format": original_format,
+                "image_base64": base64.b64encode(compressed_data).decode('utf-8')
             }
             
     except Exception as e:
