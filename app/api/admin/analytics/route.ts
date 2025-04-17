@@ -107,17 +107,77 @@ export async function GET() {
     // Count total stock items
     const totalStockItems = await prisma.stock.count();
     
-    // Count items that are in stock
-    const inStockItems = await prisma.stock.count({
+    // Count items that are in stock for each location
+    const inStockJammelItems = await prisma.stock.count({
       where: {
-        inStock: true,
+        inStockJammel: true,
       },
     });
     
-    // Count items that are out of stock
-    const outOfStockItems = await prisma.stock.count({
+    const inStockTunisItems = await prisma.stock.count({
       where: {
-        inStock: false,
+        inStockTunis: true,
+      },
+    });
+    
+    const inStockSousseItems = await prisma.stock.count({
+      where: {
+        inStockSousse: true,
+      },
+    });
+    
+    const inStockOnlineItems = await prisma.stock.count({
+      where: {
+        inStockOnline: true,
+      },
+    });
+    
+    // Count items that are out of stock for each location
+    const outOfStockJammelItems = await prisma.stock.count({
+      where: {
+        inStockJammel: false,
+      },
+    });
+    
+    const outOfStockTunisItems = await prisma.stock.count({
+      where: {
+        inStockTunis: false,
+      },
+    });
+    
+    const outOfStockSousseItems = await prisma.stock.count({
+      where: {
+        inStockSousse: false,
+      },
+    });
+    
+    const outOfStockOnlineItems = await prisma.stock.count({
+      where: {
+        inStockOnline: false,
+      },
+    });
+    
+    // Count items that are in stock in at least one location
+    const inStockAnyLocationItems = await prisma.stock.count({
+      where: {
+        OR: [
+          { inStockJammel: true },
+          { inStockTunis: true },
+          { inStockSousse: true },
+          { inStockOnline: true },
+        ],
+      },
+    });
+    
+    // Count items that are out of stock in all locations
+    const outOfStockAllLocationsItems = await prisma.stock.count({
+      where: {
+        AND: [
+          { inStockJammel: false },
+          { inStockTunis: false },
+          { inStockSousse: false },
+          { inStockOnline: false },
+        ],
       },
     });
 
@@ -132,8 +192,26 @@ export async function GET() {
       last7DaysLabels: salesData.labels,
       globalStock: {
         totalStock: totalStockItems,
-        inStockItems,
-        outOfStockItems,
+        inStockAnyLocation: inStockAnyLocationItems,
+        outOfStockAllLocations: outOfStockAllLocationsItems,
+        locationSpecific: {
+          jammel: {
+            inStock: inStockJammelItems,
+            outOfStock: outOfStockJammelItems,
+          },
+          tunis: {
+            inStock: inStockTunisItems,
+            outOfStock: outOfStockTunisItems,
+          },
+          sousse: {
+            inStock: inStockSousseItems,
+            outOfStock: outOfStockSousseItems,
+          },
+          online: {
+            inStock: inStockOnlineItems,
+            outOfStock: outOfStockOnlineItems,
+          },
+        },
       },
     };
 
