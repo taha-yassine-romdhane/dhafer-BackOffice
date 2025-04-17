@@ -6,7 +6,10 @@ import { format } from 'date-fns';
 
 interface Stock {
   id: number;
-  inStock: boolean;
+  inStockJammel: boolean;
+  inStockTunis: boolean;
+  inStockSousse: boolean;
+  inStockOnline: boolean;
   size: string;
   colorId: number;
   updatedAt: Date;
@@ -63,15 +66,32 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
     }, 3000);
   }, []);
 
-  // Toggle stock status locally
-  const toggleStockStatus = (stockId: number) => {
+  // Toggle stock status locally for a specific location
+  const toggleStockStatus = (stockId: number, location: 'Jammel' | 'Tunis' | 'Sousse' | 'Online') => {
     const newProduct = JSON.parse(JSON.stringify(localProduct)) as Product;
     
-    // Find and update the stock
+    // Find and update the stock for the specific location
     for (const variant of newProduct.colorVariants) {
       const stockIndex = variant.stocks.findIndex(s => s.id === stockId);
       if (stockIndex !== -1) {
-        variant.stocks[stockIndex].inStock = !variant.stocks[stockIndex].inStock;
+        // Use a type-safe approach with specific property updates based on location
+        const stock = variant.stocks[stockIndex];
+        
+        switch(location) {
+          case 'Jammel':
+            stock.inStockJammel = !stock.inStockJammel;
+            break;
+          case 'Tunis':
+            stock.inStockTunis = !stock.inStockTunis;
+            break;
+          case 'Sousse':
+            stock.inStockSousse = !stock.inStockSousse;
+            break;
+          case 'Online':
+            stock.inStockOnline = !stock.inStockOnline;
+            break;
+        }
+        
         setLocalProduct(newProduct);
         setHasChanges(true);
         break;
@@ -88,16 +108,42 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
 
     try {
       // Collect all stocks that have changed
-      const changedStocks: { stockId: number; inStock: boolean }[] = [];
+      const changedStocks: { 
+        stockId: number; 
+        inStockJammel?: boolean; 
+        inStockTunis?: boolean; 
+        inStockSousse?: boolean; 
+        inStockOnline?: boolean; 
+      }[] = [];
       
       localProduct.colorVariants.forEach((localVariant, variantIndex) => {
         localVariant.stocks.forEach((localStock, stockIndex) => {
           const originalStock = product.colorVariants[variantIndex]?.stocks[stockIndex];
-          if (originalStock && originalStock.inStock !== localStock.inStock) {
-            changedStocks.push({
-              stockId: localStock.id,
-              inStock: localStock.inStock
-            });
+          if (originalStock) {
+            const changes: any = { stockId: localStock.id };
+            let hasChanges = false;
+            
+            // Check each location for changes
+            if (originalStock.inStockJammel !== localStock.inStockJammel) {
+              changes.inStockJammel = localStock.inStockJammel;
+              hasChanges = true;
+            }
+            if (originalStock.inStockTunis !== localStock.inStockTunis) {
+              changes.inStockTunis = localStock.inStockTunis;
+              hasChanges = true;
+            }
+            if (originalStock.inStockSousse !== localStock.inStockSousse) {
+              changes.inStockSousse = localStock.inStockSousse;
+              hasChanges = true;
+            }
+            if (originalStock.inStockOnline !== localStock.inStockOnline) {
+              changes.inStockOnline = localStock.inStockOnline;
+              hasChanges = true;
+            }
+            
+            if (hasChanges) {
+              changedStocks.push(changes);
+            }
           }
         });
       });
@@ -252,7 +298,16 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                         Size
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Status
+                        Jammel
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
+                        Tunis
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
+                        Sousse
+                      </th>
+                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
+                        Online
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
                         Last Updated
@@ -270,14 +325,56 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => toggleStockStatus(stock.id)}
-                                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                                  stock.inStock
+                                onClick={() => toggleStockStatus(stock.id, 'Jammel')}
+                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                                  stock.inStockJammel
                                     ? 'bg-green-100 text-green-800 hover:bg-green-200'
                                     : 'bg-red-100 text-red-800 hover:bg-red-200'
                                 }`}
                               >
-                                {stock.inStock ? 'In Stock' : 'Out of Stock'}
+                                {stock.inStockJammel ? '✓' : '✗'}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => toggleStockStatus(stock.id, 'Tunis')}
+                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                                  stock.inStockTunis
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                }`}
+                              >
+                                {stock.inStockTunis ? '✓' : '✗'}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => toggleStockStatus(stock.id, 'Sousse')}
+                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                                  stock.inStockSousse
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                }`}
+                              >
+                                {stock.inStockSousse ? '✓' : '✗'}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-2 px-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => toggleStockStatus(stock.id, 'Online')}
+                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                                  stock.inStockOnline
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                }`}
+                              >
+                                {stock.inStockOnline ? '✓' : '✗'}
                               </button>
                             </div>
                           </td>

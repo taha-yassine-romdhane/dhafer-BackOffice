@@ -16,9 +16,34 @@ export async function PUT(request: Request) {
 
     // Validate each stock update
     for (const stock of stocks) {
-      if (typeof stock.stockId !== 'number' || typeof stock.inStock !== 'boolean') {
+      if (typeof stock.stockId !== 'number') {
         return NextResponse.json(
-          { success: false, error: 'Invalid input: each stock must have stockId (number) and inStock (boolean)' },
+          { success: false, error: 'Invalid input: each stock must have stockId (number)' },
+          { status: 400 }
+        );
+      }
+      
+      // Check that at least one location stock status is provided
+      const hasLocationStatus = 
+        'inStockJammel' in stock || 
+        'inStockTunis' in stock || 
+        'inStockSousse' in stock || 
+        'inStockOnline' in stock;
+      
+      if (!hasLocationStatus) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid input: each stock must have at least one location status' },
+          { status: 400 }
+        );
+      }
+      
+      // Validate that all provided location statuses are boolean
+      if ('inStockJammel' in stock && typeof stock.inStockJammel !== 'boolean' ||
+          'inStockTunis' in stock && typeof stock.inStockTunis !== 'boolean' ||
+          'inStockSousse' in stock && typeof stock.inStockSousse !== 'boolean' ||
+          'inStockOnline' in stock && typeof stock.inStockOnline !== 'boolean') {
+        return NextResponse.json(
+          { success: false, error: 'Invalid input: all location stock statuses must be boolean' },
           { status: 400 }
         );
       }
@@ -26,19 +51,23 @@ export async function PUT(request: Request) {
 
     // Process all updates in a transaction
     const results = await prisma.$transaction(
-      stocks.map(({ stockId, inStock }) => 
-        prisma.stock.update({
+      stocks.map((stock) => {
+        const { stockId, ...updateData } = stock;
+        return prisma.stock.update({
           where: { id: stockId },
-          data: { inStock },
+          data: updateData,
           select: {
             id: true,
-            inStock: true,
+            inStockJammel: true,
+            inStockTunis: true,
+            inStockSousse: true,
+            inStockOnline: true,
             size: true,
             colorId: true,
             updatedAt: true,
           },
-        })
-      )
+        });
+      })
     );
 
     return NextResponse.json({ 

@@ -86,7 +86,10 @@ export async function PUT(
 
       // Create stock entries for each size
       const stockData = data.sizes.map((size: string) => ({
-        inStock: false, // Default to false for new color variants
+        inStockJammel: false, // Default to false for new color variants
+        inStockTunis: false,
+        inStockSousse: false,
+        inStockOnline: false,
         size,
         colorId: colorVariantId,
         productId: productId

@@ -11,7 +11,10 @@ interface UpdateProductImage {
 
 interface UpdateStockData {
   size: string;
-  inStock?: boolean;
+  inStockJammel?: boolean;
+  inStockTunis?: boolean;
+  inStockSousse?: boolean;
+  inStockOnline?: boolean;
 }
 
 interface UpdateColorVariant {
@@ -137,7 +140,10 @@ export async function PUT(
                   ?.find((s: { size: string }) => s.size === size);
 
                 return {
-                  inStock: stockConfig?.inStock ?? false, // Use nullish coalescing to default to false
+                  inStockJammel: stockConfig?.inStockJammel ?? false, // Use nullish coalescing to default to false
+                  inStockTunis: stockConfig?.inStockTunis ?? false,
+                  inStockSousse: stockConfig?.inStockSousse ?? false,
+                  inStockOnline: stockConfig?.inStockOnline ?? false,
                   size,
                   colorId: existingVariant.id,
                   productId: product.id
@@ -193,7 +199,10 @@ export async function PUT(
               ?.find((s: { size: string }) => s.size === size);
             
             return {
-              inStock: stockConfig?.inStock ?? false, // Use nullish coalescing to default to false
+              inStockJammel: stockConfig?.inStockJammel ?? false, // Use nullish coalescing to default to false
+              inStockTunis: stockConfig?.inStockTunis ?? false,
+              inStockSousse: stockConfig?.inStockSousse ?? false,
+              inStockOnline: stockConfig?.inStockOnline ?? false,
               size,
               colorId: newVariant.id,
               productId: product.id

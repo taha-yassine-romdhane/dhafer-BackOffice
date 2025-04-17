@@ -54,7 +54,10 @@ export async function POST(request: Request) {
           ?.find((s: { size: string }) => s.size === size);
         
         return {
-          inStock: stockConfig?.inStock ?? false, // Use nullish coalescing to default to false
+          inStockJammel: stockConfig?.inStockJammel ?? false, // Use nullish coalescing to default to false
+          inStockTunis: stockConfig?.inStockTunis ?? false,
+          inStockSousse: stockConfig?.inStockSousse ?? false,
+          inStockOnline: stockConfig?.inStockOnline ?? false,
           size: size,
           colorId: variant.id,
           productId: product.id,

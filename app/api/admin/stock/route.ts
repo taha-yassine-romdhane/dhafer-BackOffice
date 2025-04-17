@@ -27,7 +27,10 @@ export async function GET() {
             stocks: {
               select: {
                 id: true,
-                inStock: true,
+                inStockJammel: true,
+                inStockTunis: true,
+                inStockSousse: true,
+                inStockOnline: true,
                 size: true,
                 colorId: true,
                 updatedAt: true,
@@ -48,18 +51,8 @@ export async function GET() {
 
     console.log(`Successfully fetched ${products.length} products`);
 
-    // Transform the data to include location for the UI
-    const transformedProducts = products.map(product => ({
-      ...product,
-      colorVariants: product.colorVariants.map(variant => ({
-        ...variant,
-        stocks: variant.stocks.map(stock => ({
-          ...stock,
-          // Add location for UI purposes
-          location: 'online' as const,
-        })),
-      })),
-    }));
+    // No need for additional transformation with the new schema
+    const transformedProducts = products;
 
     return NextResponse.json({ 
       success: true, 
@@ -79,40 +72,53 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { stockId, inStock } = await request.json();
-    console.log('Updating stock:', { stockId, inStock });
+    const { stockId, location, status } = await request.json();
+    console.log('Updating stock:', { stockId, location, status });
 
-    if (typeof stockId !== 'number' || typeof inStock !== 'boolean') {
+    if (typeof stockId !== 'number' || typeof status !== 'boolean' || !location) {
       return NextResponse.json(
         { success: false, error: 'Invalid input' },
         { status: 400 }
       );
     }
 
-    // Update the inStock field directly
+    // Determine which field to update based on location
+    const updateData: any = {};
+    
+    if (location === 'Jammel') {
+      updateData.inStockJammel = status;
+    } else if (location === 'Tunis') {
+      updateData.inStockTunis = status;
+    } else if (location === 'Sousse') {
+      updateData.inStockSousse = status;
+    } else if (location === 'Online') {
+      updateData.inStockOnline = status;
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Invalid location' },
+        { status: 400 }
+      );
+    }
+
+    // Update the specific location field
     const updatedStock = await prisma.stock.update({
       where: { id: stockId },
-      data: { 
-        inStock 
-      },
+      data: updateData,
       select: {
         id: true,
-        inStock: true,
+        inStockJammel: true,
+        inStockTunis: true,
+        inStockSousse: true,
+        inStockOnline: true,
         size: true,
         colorId: true,
         updatedAt: true,
       },
     });
 
-    // Add the location field for the UI
-    const transformedStock = {
-      ...updatedStock,
-      location: 'online' as const,
-    };
-
     return NextResponse.json({ 
       success: true, 
-      stock: transformedStock 
+      stock: updatedStock 
     });
   } catch (error) {
     console.log("error ", error);

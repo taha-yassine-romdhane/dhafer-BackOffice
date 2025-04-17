@@ -9,7 +9,10 @@ import { format } from 'date-fns';
 // Define local interfaces for the stock management page
 interface StockItem {
   id: number;
-  inStock: boolean;
+  inStockJammel: boolean;
+  inStockTunis: boolean;
+  inStockSousse: boolean;
+  inStockOnline: boolean;
   size: string;
   colorId: number;
   updatedAt: Date;
@@ -81,18 +84,29 @@ export default function StockManagementPage() {
   const calculateStockSummary = (product: ProductWithStocks) => {
     let inStockCount = 0;
     let outOfStockCount = 0;
+    let totalLocations = 0;
 
     product.colorVariants.forEach(variant => {
       variant.stocks.forEach(stock => {
-        if (stock.inStock) {
-          inStockCount++;
-        } else {
-          outOfStockCount++;
-        }
+        // Count each location separately
+        totalLocations += 4; // 4 locations per stock item
+        
+        // Count available locations
+        if (stock.inStockJammel) inStockCount++;
+        else outOfStockCount++;
+        
+        if (stock.inStockTunis) inStockCount++;
+        else outOfStockCount++;
+        
+        if (stock.inStockSousse) inStockCount++;
+        else outOfStockCount++;
+        
+        if (stock.inStockOnline) inStockCount++;
+        else outOfStockCount++;
       });
     });
 
-    return { inStockCount, outOfStockCount };
+    return { inStockCount, outOfStockCount, totalLocations };
   };
 
   return (
@@ -204,13 +218,19 @@ export default function StockManagementPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.inStockCount} units
+                            {stockSummary.inStockCount} locations
                           </span>
+                          <div className="text-xs text-gray-500">
+                            ({Math.round((stockSummary.inStockCount / stockSummary.totalLocations) * 100)}%)
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.outOfStockCount} units
+                            {stockSummary.outOfStockCount} locations
                           </span>
+                          <div className="text-xs text-gray-500">
+                            ({Math.round((stockSummary.outOfStockCount / stockSummary.totalLocations) * 100)}%)
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {lastUpdated ? format(new Date(lastUpdated), 'MMM d, HH:mm') : 'N/A'}

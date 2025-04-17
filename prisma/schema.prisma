@@ -109,15 +109,19 @@ model OrderItem {
 }
 
 model Stock {
-  id        Int          @id @default(autoincrement())
-  inStock   Boolean      @default(false)
-  product   Product      @relation("ProductStock", fields: [productId], references: [id], onDelete: Cascade)
-  productId Int
-  size      String
-  colorId   Int
-  color     ColorVariant @relation("ColorVariantStock", fields: [colorId], references: [id], onDelete: Cascade)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id              Int          @id @default(autoincrement())
+  // Location-specific stock status
+  inStockJammel   Boolean      @default(true)
+  inStockTunis    Boolean      @default(true)
+  inStockSousse   Boolean      @default(true)
+  inStockOnline   Boolean      @default(true)
+  product         Product      @relation("ProductStock", fields: [productId], references: [id], onDelete: Cascade)
+  productId       Int
+  size            String
+  colorId         Int
+  color           ColorVariant @relation("ColorVariantStock", fields: [colorId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   @@unique([productId, size, colorId])
 }

@@ -56,7 +56,10 @@ export async function POST(request: Request) {
         // Create the stock entry with the provided inStock status or default to false
         await prisma.stock.create({
           data: {
-            inStock: stockConfig?.inStock || false,
+            inStockJammel: stockConfig?.inStockJammel || false,
+            inStockTunis: stockConfig?.inStockTunis || false,
+            inStockSousse: stockConfig?.inStockSousse || false,
+            inStockOnline: stockConfig?.inStockOnline || false,
             size: size,
             colorId: variant.id,
             productId: product.id,

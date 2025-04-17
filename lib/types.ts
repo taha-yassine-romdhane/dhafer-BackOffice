@@ -21,13 +21,18 @@ export interface ColorVariant {
 
 export interface Stock {
   id: number;
-  inStock: boolean;
+  // Location-specific stock status
+  inStockJammel: boolean;
+  inStockTunis: boolean;
+  inStockSousse: boolean;
+  inStockOnline: boolean;
   size: string;
   colorId: number;
   productId: number;
   createdAt: Date;
   updatedAt: Date;
 }
+
 export interface Product {
   id: number;
   name: string;
