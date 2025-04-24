@@ -44,12 +44,29 @@ async def compress_image(
         original_width, original_height = input_image.size
         original_size = len(contents)
         
-        # Create a new image with the same mode and size to avoid any automatic processing
-        new_image = Image.new(input_image.mode, (original_width, original_height))
-        new_image.paste(input_image, (0, 0))
+        # Check for EXIF orientation
+        orientation = None
+        if format.upper() == 'JPEG' or (image.content_type and 'jpeg' in image.content_type.lower()):
+            try:
+                if hasattr(input_image, '_getexif') and input_image._getexif():
+                    exif = input_image._getexif()
+                    for tag, tag_value in ExifTags.TAGS.items():
+                        if tag_value == 'Orientation':
+                            if tag in exif:
+                                orientation = exif[tag]
+                                print(f"EXIF Orientation detected: {orientation}")
+                            break
+            except Exception as e:
+                print(f"Error reading EXIF: {e}")
         
-        # Use this new image for further processing
-        input_image = new_image
+        # Apply the correct rotation based on EXIF orientation
+        if orientation:
+            if orientation == 8:  # Rotation 90 degrees
+                input_image = input_image.transpose(Image.ROTATE_90)
+            elif orientation == 3:  # Rotation 180 degrees
+                input_image = input_image.transpose(Image.ROTATE_180)
+            elif orientation == 6:  # Rotation 270 degrees
+                input_image = input_image.transpose(Image.ROTATE_270)
         
         # Only resize if the image exceeds the maximum dimensions
         if original_width > max_width or original_height > max_height:
@@ -108,7 +125,7 @@ async def compress_image(
         base64_image = base64.b64encode(compressed_image).decode('utf-8')
         
         # Return response with detailed information
-        return {
+        response_data = {
             "success": True,
             "original_size_kb": original_size / 1024,
             "compressed_size_kb": compressed_size / 1024,
@@ -120,6 +137,12 @@ async def compress_image(
             "format": format.upper(),
             "image_base64": base64_image
         }
+        
+        # Add orientation info if available
+        if orientation:
+            response_data["original_orientation"] = orientation
+            
+        return response_data
         
     except Exception as e:
         return JSONResponse(
