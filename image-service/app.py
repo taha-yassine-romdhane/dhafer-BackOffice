@@ -39,31 +39,34 @@ async def compress_image(
         original_width, original_height = input_image.size
         original_size = len(contents)
         
-        # Fix orientation based on EXIF data
-        try:
-            for orientation in ExifTags.TAGS.keys():
-                if ExifTags.TAGS[orientation] == 'Orientation':
-                    break
-            
-            exif = dict(input_image._getexif().items())
-            
-            if exif[orientation] == 2:
-                input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT)
-            elif exif[orientation] == 3:
-                input_image = input_image.transpose(Image.ROTATE_180)
-            elif exif[orientation] == 4:
-                input_image = input_image.transpose(Image.FLIP_TOP_BOTTOM)
-            elif exif[orientation] == 5:
-                input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT).transpose(Image.ROTATE_90)
-            elif exif[orientation] == 6:
-                input_image = input_image.transpose(Image.ROTATE_270)
-            elif exif[orientation] == 7:
-                input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT).transpose(Image.ROTATE_270)
-            elif exif[orientation] == 8:
-                input_image = input_image.transpose(Image.ROTATE_90)
-        except (AttributeError, KeyError, IndexError):
-            # No EXIF data or no orientation tag, continue without rotating
-            pass
+        # Fix orientation based on EXIF data - only for JPEG images
+        if image.content_type and 'jpeg' in image.content_type.lower():
+            try:
+                for orientation in ExifTags.TAGS.keys():
+                    if ExifTags.TAGS[orientation] == 'Orientation':
+                        break
+                
+                if hasattr(input_image, '_getexif') and input_image._getexif() is not None:
+                    exif = dict(input_image._getexif().items())
+                    
+                    if orientation in exif:
+                        if exif[orientation] == 2:
+                            input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT)
+                        elif exif[orientation] == 3:
+                            input_image = input_image.transpose(Image.ROTATE_180)
+                        elif exif[orientation] == 4:
+                            input_image = input_image.transpose(Image.FLIP_TOP_BOTTOM)
+                        elif exif[orientation] == 5:
+                            input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT).transpose(Image.ROTATE_90)
+                        elif exif[orientation] == 6:
+                            input_image = input_image.transpose(Image.ROTATE_270)
+                        elif exif[orientation] == 7:
+                            input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT).transpose(Image.ROTATE_270)
+                        elif exif[orientation] == 8:
+                            input_image = input_image.transpose(Image.ROTATE_90)
+            except (AttributeError, KeyError, IndexError, ValueError, TypeError):
+                # No EXIF data or no orientation tag, continue without rotating
+                pass
         
         # Calculate new dimensions while maintaining aspect ratio
         # Only resize if the image exceeds the maximum dimensions
@@ -87,12 +90,29 @@ async def compress_image(
         output_buffer = io.BytesIO()
         
         # Save with the specified format and quality
-        input_image.save(
-            output_buffer, 
-            format=format.upper(), 
-            quality=quality,
-            optimize=True
-        )
+        # Ensure we're preserving the exact dimensions
+        if format.upper() == 'JPEG':
+            input_image.save(
+                output_buffer, 
+                format='JPEG', 
+                quality=quality,
+                optimize=True,
+                subsampling=0  # Prevent chroma subsampling which can affect appearance
+            )
+        elif format.upper() == 'PNG':
+            input_image.save(
+                output_buffer, 
+                format='PNG',
+                optimize=True,
+                compress_level=9  # Maximum compression
+            )
+        else:
+            input_image.save(
+                output_buffer, 
+                format=format.upper(), 
+                quality=quality,
+                optimize=True
+            )
         
         # Get the compressed image bytes
         output_buffer.seek(0)
@@ -111,6 +131,8 @@ async def compress_image(
             "original_size_kb": original_size / 1024,
             "compressed_size_kb": compressed_size / 1024,
             "compression_ratio": f"{compression_ratio:.2f}%",
+            "original_width": original_width,
+            "original_height": original_height,
             "width": input_image.width,
             "height": input_image.height,
             "format": format.upper(),
