@@ -63,10 +63,14 @@ async def compress_image(
         if orientation:
             if orientation == 8:  # Rotation 90 degrees
                 input_image = input_image.transpose(Image.ROTATE_90)
+                # Swap width and height after rotation
+                original_width, original_height = original_height, original_width
             elif orientation == 3:  # Rotation 180 degrees
                 input_image = input_image.transpose(Image.ROTATE_180)
             elif orientation == 6:  # Rotation 270 degrees
                 input_image = input_image.transpose(Image.ROTATE_270)
+                # Swap width and height after rotation
+                original_width, original_height = original_height, original_width
         
         # Only resize if the image exceeds the maximum dimensions
         if original_width > max_width or original_height > max_height:
@@ -75,8 +79,12 @@ async def compress_image(
             new_width = int(original_width * ratio)
             new_height = int(original_height * ratio)
             
+            print(f"Resizing from {original_width}x{original_height} to {new_width}x{new_height}")
+            
             # Resize using high-quality resampling
             input_image = input_image.resize((new_width, new_height), Image.LANCZOS)
+        else:
+            print(f"No resizing needed, keeping dimensions {original_width}x{original_height}")
         
         # Convert to RGB if RGBA (for JPEG compatibility)
         if input_image.mode == 'RGBA' and format.upper() == 'JPEG':
