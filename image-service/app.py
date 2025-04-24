@@ -5,7 +5,8 @@ from PIL import Image, ExifTags
 import io
 import uvicorn
 import os
-from typing import List, Optional
+from typing import Optional
+import base64
 
 app = FastAPI(title="Image Compression Service")
 
@@ -54,37 +55,26 @@ async def compress_image(
                         if tag_value == 'Orientation':
                             if tag in exif:
                                 orientation = exif[tag]
-                                print(f"EXIF Orientation detected: {orientation}")
-                            break
             except Exception as e:
-                print(f"Error reading EXIF: {e}")
+                return JSONResponse(status_code=500, content={"error": f"Error reading EXIF: {e}"})
         
         # Apply the correct rotation based on EXIF orientation
         if orientation:
             if orientation == 8:  # Rotation 90 degrees
                 input_image = input_image.transpose(Image.ROTATE_90)
-                # Swap width and height after rotation
                 original_width, original_height = original_height, original_width
             elif orientation == 3:  # Rotation 180 degrees
                 input_image = input_image.transpose(Image.ROTATE_180)
             elif orientation == 6:  # Rotation 270 degrees
                 input_image = input_image.transpose(Image.ROTATE_270)
-                # Swap width and height after rotation
                 original_width, original_height = original_height, original_width
         
-        # Only resize if the image exceeds the maximum dimensions
+        # Resize if necessary
         if original_width > max_width or original_height > max_height:
-            # Calculate the ratio to maintain aspect ratio
             ratio = min(max_width / original_width, max_height / original_height)
             new_width = int(original_width * ratio)
             new_height = int(original_height * ratio)
-            
-            print(f"Resizing from {original_width}x{original_height} to {new_width}x{new_height}")
-            
-            # Resize using high-quality resampling
             input_image = input_image.resize((new_width, new_height), Image.LANCZOS)
-        else:
-            print(f"No resizing needed, keeping dimensions {original_width}x{original_height}")
         
         # Convert to RGB if RGBA (for JPEG compatibility)
         if input_image.mode == 'RGBA' and format.upper() == 'JPEG':
@@ -95,30 +85,11 @@ async def compress_image(
         
         # Save with format-specific settings
         if format.upper() == 'JPEG':
-            # For JPEG, use quality parameter and no EXIF
-            input_image.save(
-                output_buffer, 
-                format='JPEG', 
-                quality=quality,
-                optimize=True,
-                subsampling=0  # Prevent chroma subsampling
-            )
+            input_image.save(output_buffer, format='JPEG', quality=quality, optimize=True, subsampling=0)
         elif format.upper() == 'PNG':
-            # For PNG, use maximum compression
-            input_image.save(
-                output_buffer, 
-                format='PNG',
-                optimize=True,
-                compress_level=9
-            )
+            input_image.save(output_buffer, format='PNG', optimize=True, compress_level=9)
         else:
-            # For other formats
-            input_image.save(
-                output_buffer, 
-                format=format.upper(), 
-                quality=quality,
-                optimize=True
-            )
+            input_image.save(output_buffer, format=format.upper(), quality=quality, optimize=True)
         
         # Get the compressed image bytes
         output_buffer.seek(0)
@@ -129,7 +100,6 @@ async def compress_image(
         compression_ratio = (1 - (compressed_size / original_size)) * 100 if original_size > 0 else 0
         
         # Convert to base64 for response
-        import base64
         base64_image = base64.b64encode(compressed_image).decode('utf-8')
         
         # Return response with detailed information
@@ -143,21 +113,8 @@ async def compress_image(
             "width": input_image.width,
             "height": input_image.height,
             "format": format.upper(),
-            "image_base64": base64_image
+            "image": base64_image
         }
         
-        # Add orientation info if available
-        if orientation:
-            response_data["original_orientation"] = orientation
-            
-        return response_data
-        
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": str(e)}
-        )
+        return JSONResponse(content=response_data)
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)
