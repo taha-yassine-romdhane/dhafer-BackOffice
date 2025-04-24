@@ -33,62 +33,61 @@ async def compress_image(
     try:
         # Read the uploaded image
         contents = await image.read()
-        input_image = Image.open(io.BytesIO(contents))
+        
+        # Create a BytesIO object from the original image data
+        image_bytes = io.BytesIO(contents)
+        
+        # Open the image without any processing
+        input_image = Image.open(image_bytes)
         
         # Get original size
         original_width, original_height = input_image.size
         original_size = len(contents)
         
-        # Completely disable any automatic rotation
-        # Get the original image data without any processing
-        original_orientation = None
+        # Create a new image with the same mode and size to avoid any automatic processing
+        new_image = Image.new(input_image.mode, (original_width, original_height))
+        new_image.paste(input_image, (0, 0))
         
-        # Create a fresh copy of the image to prevent any automatic rotation
-        # This ensures we're working with the exact image as uploaded
-        input_image = Image.open(io.BytesIO(contents))
+        # Use this new image for further processing
+        input_image = new_image
         
-        # Calculate new dimensions while maintaining aspect ratio
         # Only resize if the image exceeds the maximum dimensions
         if original_width > max_width or original_height > max_height:
-            # Calculate the ratio
+            # Calculate the ratio to maintain aspect ratio
             ratio = min(max_width / original_width, max_height / original_height)
             new_width = int(original_width * ratio)
             new_height = int(original_height * ratio)
             
-            # Resize the image using high-quality resampling
+            # Resize using high-quality resampling
             input_image = input_image.resize((new_width, new_height), Image.LANCZOS)
-        else:
-            # Keep original dimensions if within limits
-            new_width, new_height = original_width, original_height
         
         # Convert to RGB if RGBA (for JPEG compatibility)
         if input_image.mode == 'RGBA' and format.upper() == 'JPEG':
             input_image = input_image.convert('RGB')
         
-        # Save the processed image to a BytesIO object
+        # Create a new BytesIO object for the output
         output_buffer = io.BytesIO()
         
-        # Save with the specified format and quality
-        # Ensure we're preserving the exact dimensions and orientation
+        # Save with format-specific settings
         if format.upper() == 'JPEG':
-            # For JPEG, explicitly preserve orientation by not writing EXIF
+            # For JPEG, use quality parameter and no EXIF
             input_image.save(
                 output_buffer, 
                 format='JPEG', 
                 quality=quality,
                 optimize=True,
-                subsampling=0,  # Prevent chroma subsampling which can affect appearance
-                exif=b''  # Empty EXIF data to prevent any orientation issues
+                subsampling=0  # Prevent chroma subsampling
             )
         elif format.upper() == 'PNG':
-            # PNG doesn't have orientation issues
+            # For PNG, use maximum compression
             input_image.save(
                 output_buffer, 
                 format='PNG',
                 optimize=True,
-                compress_level=9  # Maximum compression
+                compress_level=9
             )
         else:
+            # For other formats
             input_image.save(
                 output_buffer, 
                 format=format.upper(), 
@@ -102,13 +101,14 @@ async def compress_image(
         compressed_size = len(compressed_image)
         
         # Calculate compression ratio
-        compression_ratio = (1 - (compressed_size / original_size)) * 100
+        compression_ratio = (1 - (compressed_size / original_size)) * 100 if original_size > 0 else 0
         
         # Convert to base64 for response
         import base64
         base64_image = base64.b64encode(compressed_image).decode('utf-8')
         
-        response_data = {
+        # Return response with detailed information
+        return {
             "success": True,
             "original_size_kb": original_size / 1024,
             "compressed_size_kb": compressed_size / 1024,
@@ -120,12 +120,6 @@ async def compress_image(
             "format": format.upper(),
             "image_base64": base64_image
         }
-        
-        # Add orientation info if available
-        if original_orientation is not None:
-            response_data["original_orientation"] = original_orientation
-            
-        return response_data
         
     except Exception as e:
         return JSONResponse(

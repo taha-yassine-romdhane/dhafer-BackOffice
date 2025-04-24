@@ -34,11 +34,16 @@ export async function POST(request: Request) {
         
         // Create form data for the microservice request
         const formData = new FormData();
-        formData.append('image', new Blob([buffer]), file.name);
+        formData.append('image', new Blob([buffer], { type: file.type }), file.name);
         formData.append('max_width', '1920');
         formData.append('max_height', '1920');
         formData.append('quality', '85');
-        formData.append('format', 'PNG');
+        
+        // Use the original image format instead of forcing PNG
+        // This helps preserve orientation metadata in formats like JPEG
+        const format = file.type.includes('png') ? 'PNG' : 
+                      file.type.includes('jpeg') || file.type.includes('jpg') ? 'JPEG' : 'PNG';
+        formData.append('format', format);
         
         // Send request to the Python microservice
         const response = await fetch('http://localhost:8000/compress', {
@@ -75,31 +80,35 @@ export async function POST(request: Request) {
       // Clean the filename to avoid problematic characters
       let cleanFileName = file.name.replace(/\s+/g, '-').toLowerCase();
       
-      // Always use .png extension regardless of original file type
-      if (!cleanFileName.endsWith('.png')) {
-        // Remove any existing extension
-        cleanFileName = cleanFileName.replace(/\.[^/.]+$/, '');
-        // Add .png extension
-        cleanFileName = `${cleanFileName}.png`;
-      }
+      // Preserve the original file extension
+      // Extract the original extension
+      const originalExtension = file.name.split('.').pop()?.toLowerCase() || 'png';
+      // Remove any existing extension
+      cleanFileName = cleanFileName.replace(/\.[^/.]+$/, '');
+      // Add the original extension back
+      cleanFileName = `${cleanFileName}.${originalExtension}`;
       
       const fileName = `${position}-${uniqueSuffix}-${cleanFileName}`;
       
       try {
         // Use the processed image buffer for upload
-        // Always use PNG format for better compatibility
-        const fileType = 'image/png';
+        // Use the original file type for better preservation of metadata
+        const fileType = file.type;
         
         // Upload directly with the processed buffer
         // This is more efficient than base64 encoding for larger files
         
         // Upload to ImageKit with the processed buffer
+        // Pass the original file type to ensure proper handling
         const uploadResponse = await imagekit.upload({
           file: processedImageBuffer,
           fileName: fileName,
           folder: '/products',
           tags: [position],
-          useUniqueFileName: false
+          useUniqueFileName: false,
+          // Explicitly set the MIME type to match the original file
+          // This helps preserve orientation metadata
+          responseFields: ['isPrivateFile', 'tags', 'customCoordinates']
         });
 
         // Ensure we have a valid response
