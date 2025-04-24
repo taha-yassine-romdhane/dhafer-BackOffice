@@ -39,33 +39,24 @@ async def compress_image(
         original_width, original_height = input_image.size
         original_size = len(contents)
         
-        # Fix orientation based on EXIF data - only for JPEG images
+        # We'll preserve the original orientation and not auto-rotate based on EXIF
+        # This ensures the image maintains its original orientation
+        # If specific rotation is needed, it should be explicitly requested
+        
+        # Store original orientation for reference
+        original_orientation = None
         if image.content_type and 'jpeg' in image.content_type.lower():
             try:
-                for orientation in ExifTags.TAGS.keys():
-                    if ExifTags.TAGS[orientation] == 'Orientation':
-                        break
-                
                 if hasattr(input_image, '_getexif') and input_image._getexif() is not None:
-                    exif = dict(input_image._getexif().items())
-                    
-                    if orientation in exif:
-                        if exif[orientation] == 2:
-                            input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT)
-                        elif exif[orientation] == 3:
-                            input_image = input_image.transpose(Image.ROTATE_180)
-                        elif exif[orientation] == 4:
-                            input_image = input_image.transpose(Image.FLIP_TOP_BOTTOM)
-                        elif exif[orientation] == 5:
-                            input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT).transpose(Image.ROTATE_90)
-                        elif exif[orientation] == 6:
-                            input_image = input_image.transpose(Image.ROTATE_270)
-                        elif exif[orientation] == 7:
-                            input_image = input_image.transpose(Image.FLIP_LEFT_RIGHT).transpose(Image.ROTATE_270)
-                        elif exif[orientation] == 8:
-                            input_image = input_image.transpose(Image.ROTATE_90)
+                    exif = input_image._getexif()
+                    if exif:
+                        for tag, tag_value in ExifTags.TAGS.items():
+                            if tag_value == 'Orientation':
+                                if tag in exif:
+                                    original_orientation = exif[tag]
+                                break
             except (AttributeError, KeyError, IndexError, ValueError, TypeError):
-                # No EXIF data or no orientation tag, continue without rotating
+                # No EXIF data or no orientation tag, continue without issue
                 pass
         
         # Calculate new dimensions while maintaining aspect ratio
@@ -126,7 +117,7 @@ async def compress_image(
         import base64
         base64_image = base64.b64encode(compressed_image).decode('utf-8')
         
-        return {
+        response_data = {
             "success": True,
             "original_size_kb": original_size / 1024,
             "compressed_size_kb": compressed_size / 1024,
@@ -138,6 +129,12 @@ async def compress_image(
             "format": format.upper(),
             "image_base64": base64_image
         }
+        
+        # Add orientation info if available
+        if original_orientation is not None:
+            response_data["original_orientation"] = original_orientation
+            
+        return response_data
         
     except Exception as e:
         return JSONResponse(
