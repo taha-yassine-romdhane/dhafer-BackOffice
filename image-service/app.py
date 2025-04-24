@@ -39,25 +39,13 @@ async def compress_image(
         original_width, original_height = input_image.size
         original_size = len(contents)
         
-        # We'll preserve the original orientation and not auto-rotate based on EXIF
-        # This ensures the image maintains its original orientation
-        # If specific rotation is needed, it should be explicitly requested
-        
-        # Store original orientation for reference
+        # Completely disable any automatic rotation
+        # Get the original image data without any processing
         original_orientation = None
-        if image.content_type and 'jpeg' in image.content_type.lower():
-            try:
-                if hasattr(input_image, '_getexif') and input_image._getexif() is not None:
-                    exif = input_image._getexif()
-                    if exif:
-                        for tag, tag_value in ExifTags.TAGS.items():
-                            if tag_value == 'Orientation':
-                                if tag in exif:
-                                    original_orientation = exif[tag]
-                                break
-            except (AttributeError, KeyError, IndexError, ValueError, TypeError):
-                # No EXIF data or no orientation tag, continue without issue
-                pass
+        
+        # Create a fresh copy of the image to prevent any automatic rotation
+        # This ensures we're working with the exact image as uploaded
+        input_image = Image.open(io.BytesIO(contents))
         
         # Calculate new dimensions while maintaining aspect ratio
         # Only resize if the image exceeds the maximum dimensions
@@ -81,16 +69,19 @@ async def compress_image(
         output_buffer = io.BytesIO()
         
         # Save with the specified format and quality
-        # Ensure we're preserving the exact dimensions
+        # Ensure we're preserving the exact dimensions and orientation
         if format.upper() == 'JPEG':
+            # For JPEG, explicitly preserve orientation by not writing EXIF
             input_image.save(
                 output_buffer, 
                 format='JPEG', 
                 quality=quality,
                 optimize=True,
-                subsampling=0  # Prevent chroma subsampling which can affect appearance
+                subsampling=0,  # Prevent chroma subsampling which can affect appearance
+                exif=b''  # Empty EXIF data to prevent any orientation issues
             )
         elif format.upper() == 'PNG':
+            # PNG doesn't have orientation issues
             input_image.save(
                 output_buffer, 
                 format='PNG',
