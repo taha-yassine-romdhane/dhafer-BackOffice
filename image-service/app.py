@@ -66,14 +66,18 @@ async def compress_image(
             pass
         
         # Calculate new dimensions while maintaining aspect ratio
+        # Only resize if the image exceeds the maximum dimensions
         if original_width > max_width or original_height > max_height:
             # Calculate the ratio
             ratio = min(max_width / original_width, max_height / original_height)
             new_width = int(original_width * ratio)
             new_height = int(original_height * ratio)
             
-            # Resize the image
+            # Resize the image using high-quality resampling
             input_image = input_image.resize((new_width, new_height), Image.LANCZOS)
+        else:
+            # Keep original dimensions if within limits
+            new_width, new_height = original_width, original_height
         
         # Convert to RGB if RGBA (for JPEG compatibility)
         if input_image.mode == 'RGBA' and format.upper() == 'JPEG':
