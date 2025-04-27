@@ -11,7 +11,7 @@ import { SIZE_GROUPS } from '@/lib/constants';
 const CATEGORY_GROUPS : { label: string; categories: string[] }[] = [
   {
     label: "Femme",
-    categories: ["abaya", "caftan", "robe-soire", "jebba"]
+    categories: ["abaya", "caftan", "robe-soire", "jebba" ,"tabdila"]
   },
   {
     label: "Enfants",
