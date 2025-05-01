@@ -27,68 +27,27 @@ export async function POST(request: Request) {
       console.log(`Original file size: ${buffer.length / 1024 / 1024} MB`);
       console.log(`File type: ${file.type}`);
       
-      // Process image with Python microservice
-      let processedImageBuffer;
-      try {
-        console.log('Sending image to compression microservice...');
-        
-        // Create form data for the microservice request
-        const formData = new FormData();
-        formData.append('image', new Blob([buffer]), file.name);
-        formData.append('max_width', '1920');
-        formData.append('max_height', '1920');
-        formData.append('quality', '85');
-        formData.append('format', 'PNG');
-        
-        // Send request to the Python microservice
-        const response = await fetch('http://localhost:8000/compress', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Microservice error: ${response.status} ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        
-        if (!result.success) {
-          throw new Error(`Compression failed: ${result.error}`);
-        }
-        
-        // Convert base64 back to buffer
-        processedImageBuffer = Buffer.from(result.image_base64, 'base64');
-        
-        console.log(`Original size: ${result.original_size_kb.toFixed(2)} KB`);
-        console.log(`Compressed size: ${result.compressed_size_kb.toFixed(2)} KB`);
-        console.log(`Compression ratio: ${result.compression_ratio}`);
-        console.log(`New dimensions: ${result.width}x${result.height}`);
-      } catch (error) {
-        console.error('Error processing image with microservice:', error);
-        // Fallback to original buffer if microservice processing fails
-        processedImageBuffer = buffer;
-        console.log('Using original image due to microservice error');
-      }
+      // Process image directly without microservice
+      let processedImageBuffer = buffer;
+      
+      console.log(`Original size: ${buffer.length / 1024} KB`);
       
       // Create a unique filename - ensure it's properly formatted
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       // Clean the filename to avoid problematic characters
       let cleanFileName = file.name.replace(/\s+/g, '-').toLowerCase();
       
-      // Always use .png extension regardless of original file type
-      if (!cleanFileName.endsWith('.png')) {
-        // Remove any existing extension
-        cleanFileName = cleanFileName.replace(/\.[^/.]+$/, '');
-        // Add .png extension
-        cleanFileName = `${cleanFileName}.png`;
+      // Keep original file extension
+      if (!cleanFileName.includes('.')) {
+        cleanFileName = `${cleanFileName}.${file.type.split('/')[1] || 'png'}`;
       }
       
       const fileName = `${position}-${uniqueSuffix}-${cleanFileName}`;
       
       try {
         // Use the processed image buffer for upload
-        // Always use PNG format for better compatibility
-        const fileType = 'image/png';
+        // Always use the original file type for better compatibility
+        const fileType = file.type;
         
         // Upload directly with the processed buffer
         // This is more efficient than base64 encoding for larger files
