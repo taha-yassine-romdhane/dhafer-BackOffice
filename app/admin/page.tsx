@@ -54,8 +54,14 @@ interface Analytics {
   last7DaysLabels: string[];
   globalStock: {
     totalStock: number;
-    inStockItems: number;
-    outOfStockItems: number;
+    inStockAnyLocation: number;
+    outOfStockAllLocations: number;
+    locationSpecific?: {
+      jammel: { inStock: number; outOfStock: number };
+      tunis: { inStock: number; outOfStock: number };
+      sousse: { inStock: number; outOfStock: number };
+      online: { inStock: number; outOfStock: number };
+    };
   };
 }
 
@@ -82,8 +88,14 @@ export default function AdminDashboard() {
     last7DaysLabels: [],
     globalStock: {
       totalStock: 0,
-      inStockItems: 0,
-      outOfStockItems: 0,
+      inStockAnyLocation: 0,
+      outOfStockAllLocations: 0,
+      locationSpecific: {
+        jammel: { inStock: 0, outOfStock: 0 },
+        tunis: { inStock: 0, outOfStock: 0 },
+        sousse: { inStock: 0, outOfStock: 0 },
+        online: { inStock: 0, outOfStock: 0 }
+      },
     },
   });
   const [loading, setLoading] = useState(true);
@@ -183,10 +195,10 @@ export default function AdminDashboard() {
             {analytics.globalStock.totalStock}
           </p>
           <p className="text-sm text-gray-500">
-            {analytics.globalStock.inStockItems} articles en stock
+            {analytics.globalStock.inStockAnyLocation} articles en stock
           </p>
           <p className="text-sm text-gray-500">
-            {analytics.globalStock.outOfStockItems} articles en rupture de stock
+            {analytics.globalStock.outOfStockAllLocations} articles en rupture de stock
           </p>
         </div>
       </div>
