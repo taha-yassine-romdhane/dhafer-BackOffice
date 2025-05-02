@@ -33,6 +33,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if size already exists
+    const existingSize = await prisma.size.findUnique({
+      where: { value }
+    });
+
+    if (existingSize) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Size already exists',
+          existingSize
+        },
+        { status: 409 }
+      );
+    }
+
     const size = await prisma.size.create({
       data: {
         value,
@@ -42,11 +58,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      size,
+      size
     });
   } catch (error) {
+    console.error('Error creating size:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create size' },
+      { 
+        success: false, 
+        error: 'Failed to create size',
+      },
       { status: 500 }
     );
   }

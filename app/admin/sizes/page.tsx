@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Size } from '@/lib/types';
+import { Edit2, Trash2 } from 'lucide-react';
 
 export default function SizePage() {
   const [sizes, setSizes] = useState<Size[]>([]);
@@ -178,13 +179,13 @@ export default function SizePage() {
                     onClick={() => handleEdit(size)}
                     className="text-sm text-indigo-600 hover:text-indigo-900"
                   >
-                    Edit
+                    <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(size.id)}
                     className="text-sm text-red-600 hover:text-red-900"
                   >
-                    Delete
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
