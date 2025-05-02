@@ -20,7 +20,9 @@ export async function GET(
     const stocks = await prisma.stock.findMany({
       where: {
         productId: parseInt(params.productId),
-        size,
+        size: {
+          value: size,
+        },
         colorId: parseInt(colorId),
       },
     })
