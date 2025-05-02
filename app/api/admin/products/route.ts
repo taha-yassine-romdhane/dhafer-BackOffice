@@ -11,6 +11,7 @@ export async function POST(request: Request) {
       throw new Error('Invalid colorVariants structure');
     }
 
+    // Process color variants
     const colorVariants = data.colorVariants.map((variant: any) => ({
       color: variant.color,
       images: {
@@ -22,14 +23,13 @@ export async function POST(request: Request) {
       }
     }));
 
+    // Create the product with basic information
     const product = await prisma.product.create({
       data: {
         name: data.name,
         description: data.description,
         price: data.price,
         salePrice: data.salePrice,
-        category: data.category,
-        sizes: data.sizes,
         collaborateur: data.collaborateur,
         colorVariants: {
           create: colorVariants
@@ -44,36 +44,87 @@ export async function POST(request: Request) {
       }
     });
 
-    // Create stock entries for each size/color combination
-    for (const variant of product.colorVariants) {
-      // Prepare stock data for all sizes at once
-      const stockData = data.sizes.map((size: string) => {
-        // Find if there's a stock configuration for this variant and size in the submitted data
-        const stockConfig = data.colorVariants
-          .find((cv: { color: string, stocks: any[] }) => cv.color === variant.color)?.stocks
-          ?.find((s: { size: string }) => s.size === size);
-        
-        return {
-          inStockJammel: stockConfig?.inStockJammel ?? false, // Use nullish coalescing to default to false
-          inStockTunis: stockConfig?.inStockTunis ?? false,
-          inStockSousse: stockConfig?.inStockSousse ?? false,
-          inStockOnline: stockConfig?.inStockOnline ?? false,
-          size: size,
-          colorId: variant.id,
-          productId: product.id,
-        };
-      });
+    // Connect categories to the product
+    if (data.categoryIds && Array.isArray(data.categoryIds) && data.categoryIds.length > 0) {
+      const categoryConnections = data.categoryIds.map((categoryId: number) => ({
+        productId: product.id,
+        categoryId: categoryId
+      }));
 
-      // Create all stocks for this variant in a single database operation
-      await prisma.stock.createMany({
-        data: stockData,
-        skipDuplicates: true, // Skip if a stock with the same unique constraint already exists
+      await prisma.productCategory.createMany({
+        data: categoryConnections,
+        skipDuplicates: true
       });
     }
 
+    // Connect sizes to the product
+    if (data.sizeIds && Array.isArray(data.sizeIds) && data.sizeIds.length > 0) {
+      const sizeConnections = data.sizeIds.map((sizeId: number) => ({
+        productId: product.id,
+        sizeId: sizeId
+      }));
+
+      await prisma.productSize.createMany({
+        data: sizeConnections,
+        skipDuplicates: true
+      });
+    }
+
+    // Create stock entries for each size/color combination
+    for (const variant of product.colorVariants) {
+      if (data.sizeIds && Array.isArray(data.sizeIds)) {
+        // Prepare stock data for all sizes at once
+        const stockData = data.sizeIds.map((sizeId: number) => {
+          // Find if there's a stock configuration for this variant and size in the submitted data
+          const stockConfig = data.colorVariants
+            .find((cv: { color: string, stocks: any[] }) => cv.color === variant.color)?.stocks
+            ?.find((s: { sizeId: number }) => s.sizeId === sizeId);
+          
+          return {
+            inStockJammel: stockConfig?.inStockJammel ?? false,
+            inStockTunis: stockConfig?.inStockTunis ?? false,
+            inStockSousse: stockConfig?.inStockSousse ?? false,
+            inStockOnline: stockConfig?.inStockOnline ?? false,
+            sizeId: sizeId,
+            colorId: variant.id,
+            productId: product.id,
+          };
+        });
+
+        // Create all stocks for this variant in a single database operation
+        await prisma.stock.createMany({
+          data: stockData,
+          skipDuplicates: true
+        });
+      }
+    }
+
+    // Fetch the complete product with all relations
+    const completeProduct = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: {
+        colorVariants: {
+          include: {
+            images: true
+          }
+        },
+        categories: {
+          include: {
+            category: true
+          }
+        },
+        sizes: {
+          include: {
+            size: true
+          }
+        },
+        stocks: true
+      }
+    });
+
     return NextResponse.json({ 
       success: true, 
-      product 
+      product: completeProduct 
     });
   } catch (error) {
     console.error('Error creating product:', error);
@@ -96,17 +147,44 @@ export async function GET() {
           include: {
             images: true
           }
-        }
+        },
+        // Include the categories and sizes relations
+        categories: {
+          include: {
+            category: true
+          }
+        },
+        sizes: {
+          include: {
+            size: true
+          }
+        },
+        stocks: true
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // Return with success flag and products array
+    // Also fetch all available categories and sizes for filtering
+    const categories = await prisma.category.findMany({
+      orderBy: {
+        name: 'asc'
+      }
+    });
+
+    const sizes = await prisma.size.findMany({
+      orderBy: {
+        value: 'asc'
+      }
+    });
+
+    // Return with success flag, products array, and available categories and sizes
     return NextResponse.json({
       success: true,
-      products: products
+      products: products,
+      categories: categories,
+      sizes: sizes
     });
 
   } catch (error) {

@@ -4,13 +4,20 @@
 import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 
+interface Size {
+  id: number;
+  value: string;
+  description?: string;
+}
+
 interface Stock {
   id: number;
   inStockJammel: boolean;
   inStockTunis: boolean;
   inStockSousse: boolean;
   inStockOnline: boolean;
-  size: string;
+  size: Size;
+  sizeId: number;
   colorId: number;
   updatedAt: Date;
 }
@@ -316,11 +323,11 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {variant.stocks
-                      .sort((a, b) => a.size.localeCompare(b.size))
+                      .sort((a, b) => a.size.value.localeCompare(b.size.value))
                       .map((stock) => (
                         <tr key={stock.id}>
                           <td className="py-2 px-2">
-                            <span className="font-medium">{stock.size}</span>
+                            <span className="font-medium">{stock.size.value}</span>
                           </td>
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-2">

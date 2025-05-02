@@ -29,7 +29,11 @@ export async function POST(request: Request) {
         description: data.description,
         price: data.price,
         salePrice: data.salePrice,
-        category: data.category,
+        categories: {
+          create: {
+            categoryId: data.category,
+          },
+        },
         sizes: data.sizes,
         collaborateur: data.collaborateur,
         colorVariants: {
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
             inStockTunis: stockConfig?.inStockTunis || false,
             inStockSousse: stockConfig?.inStockSousse || false,
             inStockOnline: stockConfig?.inStockOnline || false,
-            size: size,
+            sizeId: size,
             colorId: variant.id,
             productId: product.id,
           },

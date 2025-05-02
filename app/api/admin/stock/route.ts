@@ -35,9 +35,6 @@ export async function GET() {
                 colorId: true,
                 updatedAt: true,
               },
-              orderBy: {
-                size: 'asc',
-              },
             },
           },
         },

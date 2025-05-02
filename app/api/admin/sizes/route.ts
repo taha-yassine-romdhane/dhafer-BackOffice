@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Get all categories with product count
-    const categories = await prisma.category.findMany({
+    // Get all sizes with product count
+    const sizes = await prisma.size.findMany({
       include: {
         _count: {
           select: {
@@ -13,27 +13,27 @@ export async function GET() {
         }
       },
       orderBy: {
-        name: 'asc'
+        value: 'asc'
       }
     });
 
     // Format the response
-    const formattedCategories = categories.map(category => ({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      productCount: category._count.products,
-      createdAt: category.createdAt
+    const formattedSizes = sizes.map(size => ({
+      id: size.id,
+      value: size.value,
+      description: size.description,
+      productCount: size._count.products,
+      createdAt: size.createdAt
     }));
 
     return NextResponse.json({
       success: true,
-      categories: formattedCategories
+      sizes: formattedSizes
     });
   } catch (error) {
-    console.error('Categories fetch error:', error);
+    console.error('Sizes fetch error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch categories' },
+      { success: false, error: 'Failed to fetch sizes' },
       { status: 500 }
     );
   }
@@ -41,31 +41,31 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, description } = await request.json();
+    const { value, description } = await request.json();
 
-    if (!name) {
+    if (!value) {
       return NextResponse.json(
-        { success: false, error: 'Category name is required' },
+        { success: false, error: 'Size value is required' },
         { status: 400 }
       );
     }
 
-    // Create a new category in the database
-    const category = await prisma.category.create({
+    // Create a new size in the database
+    const size = await prisma.size.create({
       data: {
-        name,
+        value,
         description
       }
     });
 
     return NextResponse.json({ 
       success: true,
-      category
+      size
     });
   } catch (error) {
-    console.error('Category creation error:', error);
+    console.error('Size creation error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create category' },
+      { success: false, error: 'Failed to create size' },
       { status: 500 }
     );
   }
@@ -78,13 +78,13 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'Category ID is required' },
+        { success: false, error: 'Size ID is required' },
         { status: 400 }
       );
     }
 
-    // Delete the category (the cascade will handle removing it from products)
-    await prisma.category.delete({
+    // Delete the size (the cascade will handle removing it from products)
+    await prisma.size.delete({
       where: {
         id: parseInt(id)
       }
@@ -92,9 +92,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Category deletion error:', error);
+    console.error('Size deletion error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete category' },
+      { success: false, error: 'Failed to delete size' },
       { status: 500 }
     );
   }

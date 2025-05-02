@@ -7,52 +7,52 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// schema.prisma
 model Product {
-  id             Int            @id @default(autoincrement())
+  id             Int               @id @default(autoincrement())
   name           String
   description    String
   price          Float
   salePrice      Float?
-  category       String
-  sizes          String[]
+  // Replaced hardcoded fields with relations
+  categories     ProductCategory[] // Relation to categories
+  sizes          ProductSize[] // Relation to sizes
   collaborateur  String?
   // Display control fields
-  showInHome     Boolean        @default(false)
-  showInPromo    Boolean        @default(false)
-  showInTopSales Boolean        @default(false)
-  priority       Int            @default(0)      // For ordering in each section
+  showInHome     Boolean           @default(false)
+  showInPromo    Boolean           @default(false)
+  showInTopSales Boolean           @default(false)
+  priority       Int               @default(0) // For ordering in each section
   // Existing relations
   colorVariants  ColorVariant[]
   orderItems     OrderItem[]
-  stocks         Stock[]        @relation("ProductStock")
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  stocks         Stock[]           @relation("ProductStock")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   // Optional: Add a view counter for analytics
-  viewCount      Int            @default(0)
-  orderCount     Int            @default(0)      // To track top selling products
+  viewCount  Int @default(0)
+  orderCount Int @default(0) // To track top selling products
 }
 
 model ColorVariant {
-  id        Int            @id @default(autoincrement())
-  color     String
-  images    ProductImage[]
-  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId Int
-  stocks    Stock[]        @relation("ColorVariantStock")
-  orderItems OrderItem[]   @relation("ColorVariantOrderItems")
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id         Int            @id @default(autoincrement())
+  color      String
+  images     ProductImage[]
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  Int
+  stocks     Stock[]        @relation("ColorVariantStock")
+  orderItems OrderItem[]    @relation("ColorVariantOrderItems")
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   @@index([productId])
 }
 
 model ProductImage {
   id             Int          @id @default(autoincrement())
-  url            String   
+  url            String
   isMain         Boolean      @default(false)
-  position       String?      // e.g., "front", "back", "side"
+  position       String? // e.g., "front", "back", "side"
   colorVariantId Int
   colorVariant   ColorVariant @relation(fields: [colorVariantId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
@@ -62,16 +62,16 @@ model ProductImage {
 }
 
 model User {
-  id              Int       @id @default(autoincrement())
-  username        String    @unique
-  email           String    @unique
-  password        String
-  createdAt       DateTime  @default(now())
-  isSubscribed    Boolean   @default(false)
-  fidelityPoints  Int       @default(0)
-  orders          Order[]
-  contacts        Contact[]
-  resetTokens     PasswordResetToken[]
+  id             Int                  @id @default(autoincrement())
+  username       String               @unique
+  email          String               @unique
+  password       String
+  createdAt      DateTime             @default(now())
+  isSubscribed   Boolean              @default(false)
+  fidelityPoints Int                  @default(0)
+  orders         Order[]
+  contacts       Contact[]
+  resetTokens    PasswordResetToken[]
 }
 
 model Order {
@@ -82,57 +82,63 @@ model Order {
   totalAmount  Float
   status       OrderStatus @default(PENDING)
   items        OrderItem[]
-  userId       Int?        // Make it optional initially
+  userId       Int? // Make it optional initially
   user         User?       @relation(fields: [userId], references: [id]) // Make it optional initially
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 }
 
 model OrderItem {
-  id            Int          @id @default(autoincrement())
-  orderId       Int
-  productId     Int
-  quantity      Int
-  size          String?
-  color         String?
-  price         Float
-  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  colorVariant  ColorVariant @relation("ColorVariantOrderItems", fields: [colorVariantId], references: [id], onDelete: Cascade)
+  id             Int          @id @default(autoincrement())
+  orderId        Int
+  productId      Int
+  quantity       Int
+  // Changed from String? to relation with Size model
+  sizeId         Int?
+  size           Size?        @relation(fields: [sizeId], references: [id])
+  color          String? // Keeping this for backward compatibility
+  price          Float
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colorVariant   ColorVariant @relation("ColorVariantOrderItems", fields: [colorVariantId], references: [id], onDelete: Cascade)
   colorVariantId Int
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([orderId])
   @@index([productId])
   @@index([colorVariantId])
+  @@index([sizeId])
 }
 
 model Stock {
-  id              Int          @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   // Location-specific stock status
-  inStockJammel   Boolean      @default(true)
-  inStockTunis    Boolean      @default(true)
-  inStockSousse   Boolean      @default(true)
-  inStockOnline   Boolean      @default(true)
-  product         Product      @relation("ProductStock", fields: [productId], references: [id], onDelete: Cascade)
-  productId       Int
-  size            String
-  colorId         Int
-  color           ColorVariant @relation("ColorVariantStock", fields: [colorId], references: [id], onDelete: Cascade)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  inStockJammel Boolean      @default(true)
+  inStockTunis  Boolean      @default(true)
+  inStockSousse Boolean      @default(true)
+  inStockOnline Boolean      @default(true)
+  product       Product      @relation("ProductStock", fields: [productId], references: [id], onDelete: Cascade)
+  productId     Int
+  // Changed from String to relation with Size model
+  sizeId        Int
+  size          Size         @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  colorId       Int
+  color         ColorVariant @relation("ColorVariantStock", fields: [colorId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  @@unique([productId, size, colorId])
+  @@unique([productId, sizeId, colorId])
+  @@index([sizeId])
 }
 
 model Contact {
   id        String   @id @default(cuid())
-  name      String?  // Optional for logged-in users
-  email     String?  // Optional for logged-in users
-  phone     String?  // Optional for logged-in users
+  name      String? // Optional for logged-in users
+  email     String? // Optional for logged-in users
+  phone     String? // Optional for logged-in users
   message   String   @db.Text
-  userId    Int?     // Reference to User if logged in
+  userId    Int? // Reference to User if logged in
   user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -147,7 +153,7 @@ model PasswordResetToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   @@index([userId])
   @@index([token])
 }
@@ -158,4 +164,50 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+// New models for dynamic categories and sizes
+model Category {
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  description String?
+  products    ProductCategory[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Size {
+  id          Int           @id @default(autoincrement())
+  value       String        @unique // e.g., "S", "M", "L", "XL", "42", "44", etc.
+  description String? // Optional description for the size
+  products    ProductSize[]
+  stocks      Stock[]
+  orderItems  OrderItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// Junction tables for many-to-many relationships
+model ProductCategory {
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId Int
+  createdAt  DateTime @default(now())
+
+  @@id([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+}
+
+model ProductSize {
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  size      Size     @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  sizeId    Int
+  createdAt DateTime @default(now())
+
+  @@id([productId, sizeId])
+  @@index([productId])
+  @@index([sizeId])
 }

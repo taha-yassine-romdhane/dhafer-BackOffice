@@ -19,6 +19,22 @@ export interface ColorVariant {
   updatedAt: Date;
 }
 
+export interface Size {
+  id: number;
+  value: string;
+  description?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Stock {
   id: number;
   // Location-specific stock status
@@ -26,11 +42,26 @@ export interface Stock {
   inStockTunis: boolean;
   inStockSousse: boolean;
   inStockOnline: boolean;
-  size: string;
+  sizeId: number;
+  size: Size;
   colorId: number;
   productId: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ProductCategory {
+  productId: number;
+  categoryId: number;
+  category: Category;
+  createdAt: Date;
+}
+
+export interface ProductSize {
+  productId: number;
+  sizeId: number;
+  size: Size;
+  createdAt: Date;
 }
 
 export interface Product {
@@ -39,8 +70,9 @@ export interface Product {
   description: string;
   price: number;
   salePrice?: number | null;
-  category: string;
-  sizes: string[];
+  // Updated to use relations instead of primitive types
+  categories: ProductCategory[];
+  sizes: ProductSize[];
   collaborateur: string | null;
   colorVariants: ColorVariant[];
   stocks: Stock[];

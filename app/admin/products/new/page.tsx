@@ -1,26 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, X, Plus } from 'lucide-react';
 import Dropzone from '@/components/drop-zone';
-import { Stock, ProductImage } from '@/lib/types';
-import { SIZE_GROUPS } from '@/lib/constants';
-
-const CATEGORY_GROUPS = [
-  {
-    label: "Femme",
-    categories: ["abaya", "caftan", "robe-soire", "jebba" ,"tabdila"]
-  },
-  {
-    label: "Enfants",
-    categories: ["enfants-caftan", "enfants-robe-soire", "tabdila"]
-  },
-  {
-    label: "Accessoires",
-    categories: ["chachia", "pochette", "eventaille", "foulard"]
-  }
-];
+import { Stock, ProductImage, Category, Size } from '@/lib/types';
 
 export interface ColorVariantImages {
   id: number;
@@ -30,14 +14,14 @@ export interface ColorVariantImages {
   previewUrls: string[];
   stocks: Stock[];
 }
+
 export interface FormData {
   name: string;
   description: string;
   price: string;
   salePrice: string | null;
-  categoryGroup: string;
-  category: string;
-  sizes: string[];
+  categoryIds: number[];
+  sizeIds: number[];
   collaborateur: string | null;
   colorVariants: ColorVariantImages[];
 }
@@ -47,31 +31,125 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [currentColor, setCurrentColor] = useState<string>('');
-  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string>('');
+  
+  // State for categories and sizes from the database
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [sizes, setSizes] = useState<Size[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  
+  // State for adding new categories and sizes
+  const [newCategory, setNewCategory] = useState<string>('');
+  const [newSize, setNewSize] = useState<string>('');
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [addingSize, setAddingSize] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
     price: '',
     salePrice: null,
-    categoryGroup: '',
-    category: '',
-    sizes: [],
+    categoryIds: [],
+    sizeIds: [],
     collaborateur: null,
     colorVariants: [],
   });
 
-  // Handle category group change
-  const handleCategoryGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const group = e.target.value;
-    setSelectedCategoryGroup(group);
-    setFormData(prev => ({
-      ...prev,
-      categoryGroup: group,
-      category: '', // Reset category when group changes
-      sizes: [] // Reset sizes when group changes
-    }));
+  // Function to add a new category
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) {
+      setError('Le nom de la catégorie est requis');
+      return;
+    }
+
+    setAddingCategory(true);
+    try {
+      const response = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newCategory }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Échec de la création de la catégorie');
+      }
+
+      const data = await response.json();
+      setCategories([...categories, data.category]);
+      setNewCategory('');
+      setError('');
+    } catch (error) {
+      console.error('Error creating category:', error);
+      setError(error instanceof Error ? error.message : 'Échec de la création de la catégorie');
+    } finally {
+      setAddingCategory(false);
+    }
   };
+
+  // Function to add a new size
+  const handleAddSize = async () => {
+    if (!newSize.trim()) {
+      setError('La valeur de la taille est requise');
+      return;
+    }
+
+    setAddingSize(true);
+    try {
+      const response = await fetch('/api/admin/sizes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value: newSize }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Échec de la création de la taille');
+      }
+
+      const data = await response.json();
+      setSizes([...sizes, data.size]);
+      setNewSize('');
+      setError('');
+    } catch (error) {
+      console.error('Error creating size:', error);
+      setError(error instanceof Error ? error.message : 'Échec de la création de la taille');
+    } finally {
+      setAddingSize(false);
+    }
+  };
+
+  // Fetch categories and sizes from the API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoadingData(true);
+      try {
+        // Fetch categories
+        const categoriesResponse = await fetch('/api/admin/categories');
+        if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
+        const categoriesData = await categoriesResponse.json();
+        
+        // Fetch sizes
+        const sizesResponse = await fetch('/api/admin/sizes');
+        if (!sizesResponse.ok) throw new Error('Failed to fetch sizes');
+        const sizesData = await sizesResponse.json();
+        
+        setCategories(categoriesData.categories || []);
+        setSizes(sizesData.sizes || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch data');
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
 
   // Add a new color variant
   const addColorVariant = () => {
@@ -125,8 +203,8 @@ export default function NewProductPage() {
       if (!formData.name.trim()) throw new Error('Product name is required');
       if (!formData.description.trim()) throw new Error('Description is required');
       if (!formData.price) throw new Error('Price is required');
-      if (!formData.category) throw new Error('Category is required');
-      if (formData.sizes.length === 0) throw new Error('At least one size is required');
+      if (formData.categoryIds.length === 0) throw new Error('At least one category is required');
+      if (formData.sizeIds.length === 0) throw new Error('At least one size is required');
       if (formData.colorVariants.length === 0) throw new Error('At least one color variant is required');
 
       // Check if each color variant has at least one image
@@ -173,14 +251,14 @@ export default function NewProductPage() {
         })
       );
 
-      // Create product data
+      // Create product data with the new schema structure
       const productData = {
         name: formData.name,
         description: formData.description,
         price: parseFloat(formData.price),
         salePrice: formData.salePrice ? parseFloat(formData.salePrice) : null,
-        category: formData.category,
-        sizes: formData.sizes,
+        categoryIds: formData.categoryIds,
+        sizeIds: formData.sizeIds,
         collaborateur: formData.collaborateur || null,
         colorVariants: colorVariantsWithUrls
       };
@@ -240,49 +318,59 @@ export default function NewProductPage() {
               />
             </div>
 
-            {/* Groupe de Categorie */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Groupe de Categorie *
-              </label>
-              <select
-                value={selectedCategoryGroup}
-                onChange={handleCategoryGroupChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="">-- Sélectionnez un groupe --</option>
-                {CATEGORY_GROUPS.map(group => (
-                  <option key={group.label} value={group.label}>
-                    {group.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Categorie */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Categorie *
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-                disabled={!selectedCategoryGroup}
-              >
-                <option value="">-- Sélectionnez une categorie --</option>
-                {selectedCategoryGroup &&
-                  CATEGORY_GROUPS
-                    .find(group => group.label === selectedCategoryGroup)
-                    ?.categories.map(category => (
-                      <option key={category} value={category}>
-                        {category.replace(/-/g, ' ')}
-                      </option>
-                    ))
-                }
-              </select>
+            {/* Categories */}
+            <div className="md:col-span-2">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-medium text-gray-700">
+                  Catégories *
+                </label>
+                <div className="flex space-x-2 items-center">
+                  <input
+                    type="text"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    placeholder="Nouvelle catégorie"
+                    className="text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCategory}
+                    disabled={addingCategory || !newCategory.trim()}
+                    className="inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingCategory ? <Loader2 className="animate-spin h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {loadingData ? (
+                  <div className="flex items-center">
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    <span>Chargement des catégories...</span>
+                  </div>
+                ) : categories.length === 0 ? (
+                  <div className="text-sm text-gray-500">
+                    Aucune catégorie disponible. Veuillez en créer une en utilisant le formulaire ci-dessus.
+                  </div>
+                ) : (
+                  categories.map((category) => (
+                    <label key={category.id} className="inline-flex items-center p-2 border rounded-md hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.categoryIds.includes(category.id)}
+                        onChange={(e) => {
+                          const updatedCategories = e.target.checked
+                            ? [...formData.categoryIds, category.id]
+                            : formData.categoryIds.filter(id => id !== category.id);
+                          setFormData(prev => ({ ...prev, categoryIds: updatedCategories }));
+                        }}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                      />
+                      <span className="text-sm text-gray-700">{category.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
 
             {/* Prix */}
@@ -344,40 +432,57 @@ export default function NewProductPage() {
 
             {/* Tailles */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Tailles *
-              </label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedCategoryGroup && SIZE_GROUPS[selectedCategoryGroup as keyof typeof SIZE_GROUPS]?.map((size) => (
-                  <label key={size} className="inline-flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.sizes.includes(size)}
-                      onChange={(e) => {
-                        const updatedSizes = e.target.checked
-                          ? [...formData.sizes, size]
-                          : formData.sizes.filter(s => s !== size);
-                        setFormData(prev => ({ ...prev, sizes: updatedSizes }));
-                      }}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{size}</span>
-                  </label>
-                ))}
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-medium text-gray-700">
+                  Tailles *
+                </label>
+                <div className="flex space-x-2 items-center">
+                  <input
+                    type="text"
+                    value={newSize}
+                    onChange={(e) => setNewSize(e.target.value)}
+                    placeholder="Nouvelle taille"
+                    className="text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddSize}
+                    disabled={addingSize || !newSize.trim()}
+                    className="inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingSize ? <Loader2 className="animate-spin h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
-
-            {/* Collaborateur */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Collaborateur
-              </label>
-              <input
-                type="text"
-                value={formData.collaborateur || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, collaborateur: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                {loadingData ? (
+                  <div className="flex items-center">
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    <span>Chargement des tailles...</span>
+                  </div>
+                ) : sizes.length === 0 ? (
+                  <div className="text-sm text-gray-500">
+                    Aucune taille disponible. Veuillez en créer une en utilisant le formulaire ci-dessus.
+                  </div>
+                ) : (
+                  sizes.map((size) => (
+                    <label key={size.id} className="inline-flex items-center p-2 border rounded-md hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={formData.sizeIds.includes(size.id)}
+                        onChange={(e) => {
+                          const updatedSizes = e.target.checked
+                            ? [...formData.sizeIds, size.id]
+                            : formData.sizeIds.filter(id => id !== size.id);
+                          setFormData(prev => ({ ...prev, sizeIds: updatedSizes }));
+                        }}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                      />
+                      <span className="text-sm text-gray-700">{size.value}</span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -4,26 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, X, Plus } from 'lucide-react';
 import Dropzone from '@/components/drop-zone';
-import { Stock, ProductImage } from '@/lib/types';
+import { Stock, ProductImage, Category, Size, ProductCategory, ProductSize } from '@/lib/types';
 import Image from 'next/image';
-import { SIZE_GROUPS } from '@/lib/constants';
-
-const CATEGORY_GROUPS : { label: string; categories: string[] }[] = [
-  {
-    label: "Femme",
-    categories: ["abaya", "caftan", "robe-soire", "jebba" ,"tabdila"]
-  },
-  {
-    label: "Enfants",
-    categories: ["enfants-caftan", "enfants-robe-soire", "tabdila"]
-  },
-  {
-    label: "Accessoires",
-    categories: ["chachia", "pochette", "eventaille", "foulard"]
-  }
-];
-
-
 
 export interface ColorVariantImages {
   id: string;
@@ -40,9 +22,8 @@ export interface FormData {
   description: string;
   price: string;
   salePrice: string | null;
-  categoryGroup: string;
-  category: string;
-  sizes: string[];
+  categoryIds: number[];
+  sizeIds: number[];
   collaborateur: string | null;
   colorVariants: ColorVariantImages[];
 }
@@ -53,52 +34,79 @@ interface EditProductPageProps {
   };
 }
 
-export default function EditProductPage({ params }: EditProductPageProps) {
+export default function EditProductPage({ params }: { params: { productId: string } }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [currentColor, setCurrentColor] = useState<string>('');
-  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string>('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [sizes, setSizes] = useState<Size[]>([]);
+  const [newCategory, setNewCategory] = useState<string>('');
+  const [newSize, setNewSize] = useState<string>('');
+  const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
+  const [isAddingSize, setIsAddingSize] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
     price: '',
     salePrice: null,
-    categoryGroup: '',
-    category: '',
-    sizes: [],
+    categoryIds: [],
+    sizeIds: [],
     collaborateur: null,
     colorVariants: [],
   });
 
+  // Fetch categories and sizes
+  useEffect(() => {
+    const fetchCategoriesAndSizes = async () => {
+      try {
+        const [categoriesResponse, sizesResponse] = await Promise.all([
+          fetch('/api/admin/categories'),
+          fetch('/api/admin/sizes')
+        ]);
+
+        if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
+        if (!sizesResponse.ok) throw new Error('Failed to fetch sizes');
+
+        const categoriesData = await categoriesResponse.json();
+        const sizesData = await sizesResponse.json();
+
+        setCategories(categoriesData.categories || []);
+        setSizes(sizesData.sizes || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to load categories and sizes');
+      }
+    };
+
+    fetchCategoriesAndSizes();
+  }, []);
+
+  // Fetch product data
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const response = await fetch(`/api/admin/products/${params.productId}`);
         if (!response.ok) throw new Error('Failed to fetch product');
 
-        const { product } = await response.json(); // Note: our API returns { success: true, product: {...} }
+        const { product } = await response.json();
 
         if (!product) {
           throw new Error('Product not found');
         }
 
-        // Find category group based on category
-        const categoryGroup = CATEGORY_GROUPS.find(group =>
-          group.categories.includes(product.category)
-        )?.label || '';
-
-        setSelectedCategoryGroup(categoryGroup);
+        // Extract category and size IDs from the product
+        const categoryIds = product.categories?.map((pc: ProductCategory) => pc.categoryId) || [];
+        const sizeIds = product.sizes?.map((ps: ProductSize) => ps.sizeId) || [];
 
         setFormData({
           name: product.name || '',
           description: product.description || '',
-          price: product.price ? product.price.toString() : '', // Add null check
-          salePrice: product.salePrice ? product.salePrice.toString() : null, // Add null check
-          categoryGroup: categoryGroup,
-          category: product.category || '',
-          sizes: product.sizes || [],
+          price: product.price ? product.price.toString() : '',
+          salePrice: product.salePrice ? product.salePrice.toString() : null,
+          categoryIds: categoryIds,
+          sizeIds: sizeIds,
           collaborateur: product.collaborateur || null,
           colorVariants: product.colorVariants?.map((cv: any) => ({
             id: cv.id || crypto.randomUUID(),
@@ -119,16 +127,80 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     fetchProduct();
   }, [params.productId]);
 
-  // Handle category group change
-  const handleCategoryGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const group = e.target.value;
-    setSelectedCategoryGroup(group);
-    setFormData(prev => ({
-      ...prev,
-      categoryGroup: group,
-      category: '',
-      sizes: []
-    }));
+  // Handle adding a new category
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) {
+      setError('Le nom de la catégorie est requis');
+      return;
+    }
+
+    setIsAddingCategory(true);
+    try {
+      const response = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newCategory }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create category');
+      }
+
+      const data = await response.json();
+      const newCategoryObj = data.category;
+
+      setCategories(prev => [...prev, newCategoryObj]);
+      setFormData(prev => ({
+        ...prev,
+        categoryIds: [...prev.categoryIds, newCategoryObj.id]
+      }));
+      setNewCategory('');
+    } catch (error) {
+      console.error('Error creating category:', error);
+      setError('Failed to create category');
+    } finally {
+      setIsAddingCategory(false);
+    }
+  };
+
+  // Handle adding a new size
+  const handleAddSize = async () => {
+    if (!newSize.trim()) {
+      setError('Le nom de la taille est requis');
+      return;
+    }
+
+    setIsAddingSize(true);
+    try {
+      const response = await fetch('/api/admin/sizes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newSize }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create size');
+      }
+
+      const data = await response.json();
+      const newSizeObj = data.size;
+
+      setSizes(prev => [...prev, newSizeObj]);
+      setFormData(prev => ({
+        ...prev,
+        sizeIds: [...prev.sizeIds, newSizeObj.id]
+      }));
+      setNewSize('');
+    } catch (error) {
+      console.error('Error creating size:', error);
+      setError('Failed to create size');
+    } finally {
+      setIsAddingSize(false);
+    }
   };
 
   // Add a new color variant
@@ -179,8 +251,8 @@ export default function EditProductPage({ params }: EditProductPageProps) {
       if (!formData.name.trim()) throw new Error('Product name is required');
       if (!formData.description.trim()) throw new Error('Description is required');
       if (!formData.price) throw new Error('Price is required');
-      if (!formData.category) throw new Error('Category is required');
-      if (formData.sizes.length === 0) throw new Error('At least one size is required');
+      if (formData.categoryIds.length === 0) throw new Error('At least one category is required');
+      if (formData.sizeIds.length === 0) throw new Error('At least one size is required');
       if (formData.colorVariants.length === 0) throw new Error('At least one color variant is required');
 
       // Process each color variant
@@ -241,13 +313,13 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         description: formData.description,
         price: parseFloat(formData.price),
         salePrice: formData.salePrice ? parseFloat(formData.salePrice) : null,
-        category: formData.category,
-        sizes: formData.sizes,
+        categoryIds: formData.categoryIds,
+        sizeIds: formData.sizeIds,
         collaborateur: formData.collaborateur,
         colorVariants: colorVariantsWithUrls
       };
 
-      const response = await fetch(`/api/products/${params.productId}`, {
+      const response = await fetch(`/api/admin/products/${params.productId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -302,49 +374,46 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               />
             </div>
 
-            {/* Category Group */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Groupe de catégories *
+            {/* Categories */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Catégories *
               </label>
-              <select
-                value={selectedCategoryGroup}
-                onChange={handleCategoryGroupChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="">Choisissez une catégorie</option>
-                {CATEGORY_GROUPS.map(group => (
-                  <option key={group.label} value={group.label}>
-                    {group.label}
-                  </option>
+              <div className="mb-2 flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <label key={category.id} className="inline-flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                    <input
+                      type="checkbox"
+                      checked={formData.categoryIds.includes(category.id)}
+                      onChange={(e) => {
+                        const updatedCategories = e.target.checked
+                          ? [...formData.categoryIds, category.id]
+                          : formData.categoryIds.filter(id => id !== category.id);
+                        setFormData(prev => ({ ...prev, categoryIds: updatedCategories }));
+                      }}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                    />
+                    <span className="text-sm text-gray-700">{category.name}</span>
+                  </label>
                 ))}
-              </select>
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Catégorie *
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-                disabled={!selectedCategoryGroup}
-              >
-                <option value="">Choisissez une catégorie</option>
-                {selectedCategoryGroup &&
-                  CATEGORY_GROUPS
-                    .find(group => group.label === selectedCategoryGroup)
-                    ?.categories.map(category => (
-                      <option key={category} value={category}>
-                        {category.replace(/-/g, ' ')}
-                      </option>
-                    ))
-                }
-              </select>
+              </div>
+              <div className="flex items-center mt-2">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Nouvelle catégorie"
+                  className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 flex-grow"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  disabled={isAddingCategory}
+                  className="ml-2 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {isAddingCategory ? 'Ajout...' : 'Ajouter'}
+                </button>
+              </div>
             </div>
 
             {/* Price */}
@@ -406,40 +475,44 @@ export default function EditProductPage({ params }: EditProductPageProps) {
 
             {/* Sizes */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tailles *
               </label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedCategoryGroup && SIZE_GROUPS[selectedCategoryGroup]?.map((size) => (
-                  <label key={size} className="inline-flex items-center">
+              <div className="mb-2 flex flex-wrap gap-2">
+                {sizes.map((size) => (
+                  <label key={size.id} className="inline-flex items-center bg-gray-100 px-3 py-1 rounded-full">
                     <input
                       type="checkbox"
-                      checked={formData.sizes.includes(size)}
+                      checked={formData.sizeIds.includes(size.id)}
                       onChange={(e) => {
                         const updatedSizes = e.target.checked
-                          ? [...formData.sizes, size]
-                          : formData.sizes.filter(s => s !== size);
-                        setFormData(prev => ({ ...prev, sizes: updatedSizes }));
+                          ? [...formData.sizeIds, size.id]
+                          : formData.sizeIds.filter(id => id !== size.id);
+                        setFormData(prev => ({ ...prev, sizeIds: updatedSizes }));
                       }}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
                     />
-                    <span className="ml-2 text-sm text-gray-700">{size}</span>
+                    <span className="text-sm text-gray-700">{size.value}</span>
                   </label>
                 ))}
               </div>
-            </div>
-
-            {/* Collaborateur */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Collaborateur
-              </label>
-              <input
-                type="text"
-                value={formData.collaborateur || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, collaborateur: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
+              <div className="flex items-center mt-2">
+                <input
+                  type="text"
+                  value={newSize}
+                  onChange={(e) => setNewSize(e.target.value)}
+                  placeholder="Nouvelle taille"
+                  className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 flex-grow"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSize}
+                  disabled={isAddingSize}
+                  className="ml-2 inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {isAddingSize ? 'Ajout...' : 'Ajouter'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

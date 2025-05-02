@@ -15,8 +15,16 @@ export async function GET(req: Request) {
                 price: true,
                 description: true,
                 salePrice: true,
-                category: true,
-                sizes: true,
+                categories: {
+                  include: {
+                    category: true
+                  }
+                },
+                sizes: {
+                  include: {
+                    size: true
+                  }
+                },
               },
             },
             colorVariant: {

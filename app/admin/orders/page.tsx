@@ -7,10 +7,31 @@ import { toast } from 'sonner';
 import { Filter, X, Search } from 'lucide-react';
 import { OrderActions } from '@/components/order-actions';
 
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface ProductCategory {
+  categoryId: number;
+  category: Category;
+}
+
+interface Size {
+  id: number;
+  value: string;
+}
+
+interface ProductSize {
+  sizeId: number;
+  size: Size;
+}
+
 interface OrderItem {
   id: number;
   quantity: number;
-  size?: string;
+  size?: Size;
+  sizeId?: number;
   color?: string;
   productId: number;
   colorVariantId: number;
@@ -18,8 +39,8 @@ interface OrderItem {
     id: number;
     description: string;
     salePrice?: number | null;
-    category: string;
-    sizes: string[];
+    categories: ProductCategory[];
+    sizes: ProductSize[];
     name: string;
     price: number;
     colorVariants: {
@@ -83,7 +104,7 @@ export default function Orders() {
               price: item.product.price,
               description: item.product.description,
               salePrice: item.product.salePrice,
-              category: item.product.category,
+              categories: item.product.categories,
               sizes: item.product.sizes
             }
           }))
@@ -385,7 +406,7 @@ export default function Orders() {
                       {order.items.map((item, index) => (
                         <div key={item.id} className="mb-1">
                           {item.quantity}x {item.product.name}
-                          {item.size && ` - Size: ${item.size}`}
+                          {item.size && ` - Size: ${item.size.value}`}
                           {item.color && ` - Color: ${item.color}`}
                           <span className="text-gray-400"> ({(item.quantity * item.product.price).toFixed(2)} TND)</span>
                         </div>

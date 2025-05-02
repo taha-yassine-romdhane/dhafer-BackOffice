@@ -2,39 +2,55 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Product } from '@/lib/types';
-
+import { Product, Category } from '@/lib/types';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const router = useRouter();
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/admin/products');
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const data = await response.json();
+      // Fetch products and categories in parallel
+      const [productsResponse, categoriesResponse] = await Promise.all([
+        fetch('/api/admin/products'),
+        fetch('/api/admin/categories')
+      ]);
+
+      if (!productsResponse.ok) throw new Error('Failed to fetch products');
+      if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
+
+      const productsData = await productsResponse.json();
+      const categoriesData = await categoriesResponse.json();
       
-      // Check if the response has a products array property
-      if (data.success && Array.isArray(data.products)) {
-        setProducts(data.products);
-      } else if (Array.isArray(data)) {
-        // Fallback for direct array response
-        setProducts(data);
+      // Set products
+      if (productsData.success && Array.isArray(productsData.products)) {
+        setProducts(productsData.products);
+      } else if (Array.isArray(productsData)) {
+        setProducts(productsData);
       } else {
-        console.error('Unexpected API response format:', data);
+        console.error('Unexpected API response format for products:', productsData);
         setProducts([]);
       }
+
+      // Set categories
+      if (categoriesData.success && Array.isArray(categoriesData.categories)) {
+        setCategories(categoriesData.categories);
+      } else {
+        console.error('Unexpected API response format for categories:', categoriesData);
+        setCategories([]);
+      }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching data:', error);
       setProducts([]);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -44,34 +60,48 @@ export default function ProductsPage() {
     if (!confirm('Are you sure you want to delete this product?')) return;
 
     try {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`/api/admin/products/${productId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete product');
-      fetchProducts();
+      fetchData();
     } catch (error) {
       console.error('Error deleting product:', error);
     }
   };
 
+  // Helper function to get category names for a product
+  const getCategoryNames = (product: Product): string => {
+    if (!product.categories || product.categories.length === 0) {
+      return 'Non catégorisé';
+    }
+    
+    return product.categories
+      .map(pc => pc.category.name)
+      .join(', ');
+  };
+
+  // Filter products based on search term and selected category
   const filteredProducts = products.filter(product => {
+    // Match search term
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    
+    // Match selected category
+    const matchesCategory = 
+      selectedCategoryId === 'all' || 
+      product.categories.some(pc => pc.categoryId === selectedCategoryId);
+    
     return matchesSearch && matchesCategory;
   });
 
-  // Get unique categories
-  const uniqueCategories = products.reduce((acc: string[], product) => {
-    if (!acc.includes(product.category)) {
-      acc.push(product.category);
-    }
-    return acc;
-  }, []);
-
-  const categories = ['Tous', ...uniqueCategories];
+  // Prepare categories for dropdown
+  const categoryOptions = [
+    { id: 'all', name: 'Toutes les catégories' },
+    ...categories
+  ];
 
   if (loading) {
     return (
@@ -103,7 +133,7 @@ export default function ProductsPage() {
         <div>
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Rechercher des produits..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -111,13 +141,13 @@ export default function ProductsPage() {
         </div>
         <div>
           <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            value={typeof selectedCategoryId === 'number' ? selectedCategoryId.toString() : selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >
-            {categories.map(category => (
-              <option key={category} value={category}>
-                {category.charAt(0).toUpperCase() + category.slice(1)}
+            {categoryOptions.map(category => (
+              <option key={category.id.toString()} value={category.id.toString()}>
+                {category.name}
               </option>
             ))}
           </select>
@@ -140,14 +170,25 @@ export default function ProductsPage() {
             </div>
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900">{product.name}</h3>
-              <p className="mt-1 text-sm text-gray-500">{product.description}</p>
+              <p className="mt-1 text-sm text-gray-500">
+                {product.description.length > 100 
+                  ? `${product.description.substring(0, 100)}...` 
+                  : product.description}
+              </p>
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  {getCategoryNames(product)}
+                </span>
+              </div>
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-lg font-medium text-gray-900">
                   {product.price.toFixed(2)} TND
                 </span>
-                <span className="text-sm text-gray-500">
-                  {product.category}
-                </span>
+                {product.salePrice && (
+                  <span className="text-sm font-medium text-red-600">
+                    {product.salePrice.toFixed(2)} TND
+                  </span>
+                )}
               </div>
               <div className="mt-4 flex space-x-3">
                 <button
