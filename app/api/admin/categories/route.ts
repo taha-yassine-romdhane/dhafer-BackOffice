@@ -1,37 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Get all categories with product count
     const categories = await prisma.category.findMany({
-      include: {
-        _count: {
-          select: {
-            products: true
-          }
-        }
-      },
       orderBy: {
-        name: 'asc'
-      }
+        name: 'asc',
+      },
     });
-
-    // Format the response
-    const formattedCategories = categories.map(category => ({
-      id: category.id,
-      name: category.name,
-      description: category.description,
-      productCount: category._count.products,
-      createdAt: category.createdAt
-    }));
 
     return NextResponse.json({
       success: true,
-      categories: formattedCategories
+      categories,
     });
   } catch (error) {
-    console.error('Categories fetch error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch categories' },
       { status: 500 }
@@ -41,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, description } = await request.json();
+    const { name, description, group } = await request.json();
 
     if (!name) {
       return NextResponse.json(
@@ -50,20 +33,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a new category in the database
     const category = await prisma.category.create({
       data: {
         name,
-        description
-      }
+        description,
+        group,
+      },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      category
+      category,
     });
   } catch (error) {
-    console.error('Category creation error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create category' },
       { status: 500 }
@@ -71,10 +53,41 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, name, description, group } = await request.json();
+
+    if (!id || !name) {
+      return NextResponse.json(
+        { success: false, error: 'Category ID and name are required' },
+        { status: 400 }
+      );
+    }
+
+    const category = await prisma.category.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        group,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      category,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to update category' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const { id } = await request.json();
 
     if (!id) {
       return NextResponse.json(
@@ -83,16 +96,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete the category (the cascade will handle removing it from products)
     await prisma.category.delete({
-      where: {
-        id: parseInt(id)
-      }
+      where: { id },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+    });
   } catch (error) {
-    console.error('Category deletion error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete category' },
       { status: 500 }

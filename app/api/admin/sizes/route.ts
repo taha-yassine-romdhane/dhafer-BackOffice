@@ -1,37 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Get all sizes with product count
     const sizes = await prisma.size.findMany({
-      include: {
-        _count: {
-          select: {
-            products: true
-          }
-        }
-      },
       orderBy: {
-        value: 'asc'
-      }
+        value: 'asc',
+      },
     });
-
-    // Format the response
-    const formattedSizes = sizes.map(size => ({
-      id: size.id,
-      value: size.value,
-      description: size.description,
-      productCount: size._count.products,
-      createdAt: size.createdAt
-    }));
 
     return NextResponse.json({
       success: true,
-      sizes: formattedSizes
+      sizes,
     });
   } catch (error) {
-    console.error('Sizes fetch error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch sizes' },
       { status: 500 }
@@ -50,20 +33,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a new size in the database
     const size = await prisma.size.create({
       data: {
         value,
-        description
-      }
+        description,
+      },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      size
+      size,
     });
   } catch (error) {
-    console.error('Size creation error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create size' },
       { status: 500 }
@@ -71,10 +52,40 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, value, description } = await request.json();
+
+    if (!id || !value) {
+      return NextResponse.json(
+        { success: false, error: 'Size ID and value are required' },
+        { status: 400 }
+      );
+    }
+
+    const size = await prisma.size.update({
+      where: { id },
+      data: {
+        value,
+        description,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      size,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to update size' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const { id } = await request.json();
 
     if (!id) {
       return NextResponse.json(
@@ -83,16 +94,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete the size (the cascade will handle removing it from products)
     await prisma.size.delete({
-      where: {
-        id: parseInt(id)
-      }
+      where: { id },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+    });
   } catch (error) {
-    console.error('Size deletion error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete size' },
       { status: 500 }

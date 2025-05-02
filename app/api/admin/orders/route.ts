@@ -40,6 +40,8 @@ export async function GET(req: Request) {
                 },
               },
             },
+            // Include the size information
+            size: true,
           },
         },
       },

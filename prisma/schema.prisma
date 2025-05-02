@@ -171,9 +171,16 @@ model Category {
   id          Int               @id @default(autoincrement())
   name        String            @unique
   description String?
+  group       CategoryGroup     @default(FEMME) // Femme, Enfant, or Accessoire
   products    ProductCategory[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+}
+
+enum CategoryGroup {
+  FEMME
+  ENFANT
+  ACCESSOIRE
 }
 
 model Size {
@@ -210,4 +217,20 @@ model ProductSize {
   @@id([productId, sizeId])
   @@index([productId])
   @@index([sizeId])
+}
+
+// Model for carousel images on the home page
+model CarouselImage {
+  id          Int      @id @default(autoincrement())
+  url         String   // URL of the image
+  title       String?  // Optional title text
+  description String?  // Optional description text
+  buttonText  String?  // Optional button text
+  buttonLink  String?  // Optional button link
+  section     String   @default("about") // Section: about, topvente1, topvente2
+  filename    String?  // Original filename
+  position    Int      @default(0) // Order in the carousel
+  isActive    Boolean  @default(true) // Whether to show in the carousel
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

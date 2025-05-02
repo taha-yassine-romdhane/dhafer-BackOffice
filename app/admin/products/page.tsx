@@ -10,6 +10,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
+  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string | 'all'>('all');
   const router = useRouter();
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function ProductsPage() {
       .join(', ');
   };
 
-  // Filter products based on search term and selected category
+  // Filter products based on search term, selected category, and category group
   const filteredProducts = products.filter(product => {
     // Match search term
     const matchesSearch = 
@@ -94,7 +95,12 @@ export default function ProductsPage() {
       selectedCategoryId === 'all' || 
       product.categories.some(pc => pc.categoryId === selectedCategoryId);
     
-    return matchesSearch && matchesCategory;
+    // Match selected category group
+    const matchesCategoryGroup =
+      selectedCategoryGroup === 'all' ||
+      product.categories.some(pc => pc.category.group === selectedCategoryGroup);
+    
+    return matchesSearch && matchesCategory && matchesCategoryGroup;
   });
 
   // Prepare categories for dropdown
@@ -129,7 +135,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <input
             type="text"
@@ -150,6 +156,18 @@ export default function ProductsPage() {
                 {category.name}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <select
+            value={selectedCategoryGroup}
+            onChange={(e) => setSelectedCategoryGroup(e.target.value)}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="all">Tous les groupes</option>
+            <option value="FEMME">Femme</option>
+            <option value="ENFANT">Enfant</option>
+            <option value="ACCESSOIRE">Accessoire</option>
           </select>
         </div>
       </div>
@@ -175,10 +193,17 @@ export default function ProductsPage() {
                   ? `${product.description.substring(0, 100)}...` 
                   : product.description}
               </p>
-              <div className="mt-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {getCategoryNames(product)}
-                </span>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {product.categories.map(pc => (
+                  <span key={pc.categoryId} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    {pc.category.name}
+                  </span>
+                ))}
+                {product.categories.length > 0 && product.categories[0].category.group && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 ml-1">
+                    {product.categories[0].category.group}
+                  </span>
+                )}
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <span className="text-lg font-medium text-gray-900">

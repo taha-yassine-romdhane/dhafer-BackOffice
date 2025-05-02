@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminAuth } from '@/components/admin-auth';
-import { Home, Package, ShoppingCart, BarChart, LayoutDashboard, User, MessageCircleIcon } from 'lucide-react';
+import { Home, Package, ShoppingCart, BarChart, LayoutDashboard, User, MessageCircleIcon, ImageIcon } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -13,12 +13,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const navigation = [
     { name: 'Tableau de bord', href: '/admin', icon: Home },
+    { name: 'Categories', href: '/admin/category', icon: Package },
     { name: 'Produits', href: '/admin/products', icon: Package },
+    { name: 'Tailles', href: '/admin/sizes', icon: Package },
     { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Gestion de stock', href: '/admin/stock', icon: BarChart },
     { name: 'Affichage des produits', href: '/admin/product-display', icon: LayoutDashboard },
+    { name: 'Carousel Images', href: '/admin/image-display', icon: ImageIcon },
     { name: 'Clients', href: '/admin/clients', icon: User },
     { name: 'Contactes', href: '/admin/contacts', icon: MessageCircleIcon },
+   
   ];
 
   return (

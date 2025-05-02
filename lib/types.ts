@@ -31,6 +31,7 @@ export interface Category {
   id: number;
   name: string;
   description?: string | null;
+  group?: 'FEMME' | 'ENFANT' | 'ACCESSOIRE';
   createdAt: Date;
   updatedAt: Date;
 }

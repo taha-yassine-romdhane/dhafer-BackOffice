@@ -40,6 +40,7 @@ export default function NewProductPage() {
   // State for adding new categories and sizes
   const [newCategory, setNewCategory] = useState<string>('');
   const [newSize, setNewSize] = useState<string>('');
+  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string>('FEMME');
   const [addingCategory, setAddingCategory] = useState(false);
   const [addingSize, setAddingSize] = useState(false);
 
@@ -68,7 +69,10 @@ export default function NewProductPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newCategory }),
+        body: JSON.stringify({ 
+          name: newCategory,
+          group: selectedCategoryGroup 
+        }),
       });
 
       if (!response.ok) {
@@ -318,6 +322,23 @@ export default function NewProductPage() {
               />
             </div>
 
+            {/* Category Group */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Groupe de catégories *
+              </label>
+              <select
+                value={selectedCategoryGroup}
+                onChange={(e) => setSelectedCategoryGroup(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="FEMME">Femme</option>
+                <option value="ENFANT">Enfant</option>
+                <option value="ACCESSOIRE">Accessoire</option>
+              </select>
+            </div>
+
             {/* Categories */}
             <div className="md:col-span-2">
               <div className="flex justify-between items-center">
@@ -342,35 +363,47 @@ export default function NewProductPage() {
                   </button>
                 </div>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {loadingData ? (
-                  <div className="flex items-center">
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                    <span>Chargement des catégories...</span>
+              
+              {/* Group categories by their group */}
+              {['FEMME', 'ENFANT', 'ACCESSOIRE'].map((group) => {
+                const groupCategories = categories.filter(cat => cat.group === group);
+                if (groupCategories.length === 0) return null;
+                
+                return (
+                  <div key={group} className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">{group === 'FEMME' ? 'Femme' : group === 'ENFANT' ? 'Enfant' : 'Accessoire'}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {loadingData ? (
+                        <div className="flex items-center">
+                          <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                          <span>Chargement des catégories...</span>
+                        </div>
+                      ) : groupCategories.length === 0 ? (
+                        <div className="text-sm text-gray-500">
+                          Aucune catégorie disponible dans ce groupe.
+                        </div>
+                      ) : (
+                        groupCategories.map((category) => (
+                          <label key={category.id} className="inline-flex items-center p-2 border rounded-md hover:bg-gray-50">
+                            <input
+                              type="checkbox"
+                              checked={formData.categoryIds.includes(category.id)}
+                              onChange={(e) => {
+                                const updatedCategories = e.target.checked
+                                  ? [...formData.categoryIds, category.id]
+                                  : formData.categoryIds.filter(id => id !== category.id);
+                                setFormData(prev => ({ ...prev, categoryIds: updatedCategories }));
+                              }}
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                            />
+                            <span className="text-sm text-gray-700">{category.name}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
                   </div>
-                ) : categories.length === 0 ? (
-                  <div className="text-sm text-gray-500">
-                    Aucune catégorie disponible. Veuillez en créer une en utilisant le formulaire ci-dessus.
-                  </div>
-                ) : (
-                  categories.map((category) => (
-                    <label key={category.id} className="inline-flex items-center p-2 border rounded-md hover:bg-gray-50">
-                      <input
-                        type="checkbox"
-                        checked={formData.categoryIds.includes(category.id)}
-                        onChange={(e) => {
-                          const updatedCategories = e.target.checked
-                            ? [...formData.categoryIds, category.id]
-                            : formData.categoryIds.filter(id => id !== category.id);
-                          setFormData(prev => ({ ...prev, categoryIds: updatedCategories }));
-                        }}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
-                      />
-                      <span className="text-sm text-gray-700">{category.name}</span>
-                    </label>
-                  ))
-                )}
-              </div>
+                );
+              })}
             </div>
 
             {/* Prix */}

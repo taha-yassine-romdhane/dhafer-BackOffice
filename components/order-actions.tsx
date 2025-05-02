@@ -15,22 +15,48 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+interface Size {
+  id: number;
+  value: string;
+}
+
+interface ProductSize {
+  sizeId: number;
+  size: Size;
+}
+
 interface OrderItem {
   id: number;
   quantity: number;
-  size?: string;
+  size?: Size;
+  sizeId?: number;
   color?: string;
   productId: number;
-  colorVariantId: number;
+  colorVariantId?: number;
+  colorVariant?: {
+    id: number;
+    color: string;
+    images: {
+      url: string;
+      isMain: boolean;
+    }[];
+  };
   product: {
     id: number;
-    description: string;
-    salePrice?: number | null;
-    category: string;
-    sizes: string[];
     name: string;
     price: number;
-    colorVariants: any[];
+    description?: string;
+    salePrice?: number | null;
+    categories?: any[];
+    sizes: ProductSize[];
+    colorVariants?: {
+      id: number;
+      color: string;
+      images: {
+        url: string;
+        isMain: boolean;
+      }[];
+    }[];
   };
 }
 
@@ -78,34 +104,33 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
   // Helper function to determine which value to select in the color dropdown
   const getSelectedColorOption = (item: OrderItem): string => {
     // If we have a valid colorVariantId and it matches a variant, select that variant
-    if (item.colorVariantId) {
-      const matchingVariant = item.product.colorVariants?.find(v => v.id === item.colorVariantId);
+    if (item.colorVariantId && item.product?.colorVariants) {
+      const matchingVariant = item.product.colorVariants.find((v: any) => v.id === item.colorVariantId);
       if (matchingVariant) {
         return matchingVariant.id.toString();
       }
     }
     
     // If we have a color string that matches a variant color, select that variant
-    if (item.color) {
-      const matchingVariant = item.product.colorVariants?.find(v => v.color === item.color);
+    if (item.color && item.product?.colorVariants) {
+      const matchingVariant = item.product.colorVariants.find((v: any) => v.color === item.color);
       if (matchingVariant) {
         return matchingVariant.id.toString();
       }
       
-      // If we have a color string but no matching variant, return a custom option
-      if (item.color.trim() !== '') {
-        return `custom:${item.color}`;
-      }
+      // If we have a color string but no matching variant, create a custom option
+      return `custom:${item.color}`;
     }
     
     // Default to empty selection
     return '';
   };
 
-  // Fetch full order details when edit modal is opened
+  // Fetch full order details for edit modal
   const fetchOrderDetails = async () => {
     setLoadingOrder(true);
     try {
+      // First fetch the order details
       const response = await fetch(`/api/admin/orders/${orderId}`);
       const data = await response.json();
       
@@ -113,9 +138,52 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
         throw new Error(data.error || 'Failed to fetch order details');
       }
       
+      // For each item in the order, fetch the full product details to get all available sizes
+      if (data.items && data.items.length > 0) {
+        console.log('Fetching product details for order items');
+        const updatedItems = await Promise.all(data.items.map(async (item: OrderItem) => {
+          try {
+            // Fetch the full product details including all available sizes using our new endpoint
+            const productResponse = await fetch(`/api/admin/products/${item.productId}/show`);
+            const productData = await productResponse.json();
+            
+            if (productResponse.ok && productData && productData.success) {
+              console.log(`Fetched product ${item.productId}:`, productData.product);
+              
+              if (productData.product.sizes) {
+                console.log(`Product ${item.productId} sizes:`, 
+                  productData.product.sizes.map((s: any) => ({
+                    sizeId: s.sizeId,
+                    value: s.size?.value
+                  }))
+                );
+              }
+              
+              // Return the item with the full product details
+              return {
+                ...item,
+                product: {
+                  ...item.product,
+                  sizes: productData.product.sizes || [],
+                  colorVariants: productData.product.colorVariants || []
+                }
+              };
+            }
+          } catch (err) {
+            console.error(`Error fetching product ${item.productId}:`, err);
+          }
+          // If there was an error, return the original item
+          return item;
+        }));
+        
+        // Update the order with the enhanced items
+        data.items = updatedItems;
+      }
+      
       setFullOrder(data);
       setEditedOrder(data);
     } catch (error) {
+      console.error('Error fetching order details:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to fetch order details');
     } finally {
       setLoadingOrder(false);
@@ -164,7 +232,7 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
   const updateItemInfo = (itemId: number, field: string, value: string, additionalData?: any) => {
     if (!editedOrder) return;
     
-    const updatedItems = editedOrder.items.map(item => {
+    const updatedItems = editedOrder.items?.map(item => {
       if (item.id === itemId) {
         // Handle special case for color which needs to update both color string and colorVariantId
         if (field === 'color' && additionalData?.colorVariantId) {
@@ -174,8 +242,34 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
             colorVariantId: additionalData.colorVariantId
           };
         }
-        // Standard field update
-        return { ...item, [field]: value };
+        
+        // Handle size selection - we need to update both sizeId and size object
+        if (field === 'sizeId') {
+          const sizeId = value ? parseInt(value) : undefined;
+          
+          // Find the size object from the product's available sizes
+          let sizeObject: Size | undefined = undefined;
+          if (sizeId && item.product?.sizes) {
+            const matchingSize = item.product.sizes.find(s => s.size?.id === sizeId || s.sizeId === sizeId);
+            if (matchingSize && matchingSize.size) {
+              sizeObject = matchingSize.size;
+            }
+          }
+          
+          console.log(`Updating size for item ${itemId} to sizeId: ${sizeId}, size object:`, sizeObject);
+          
+          return {
+            ...item,
+            sizeId: sizeId,
+            size: sizeObject
+          };
+        }
+        
+        // For other fields, just update the field directly
+        return {
+          ...item,
+          [field]: value
+        };
       }
       return item;
     });
@@ -193,12 +287,12 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
     // Don't allow quantity less than 1
     if (newQuantity < 1) newQuantity = 1;
     
-    const updatedItems = editedOrder.items.map(item => 
+    const updatedItems = editedOrder.items?.map(item => 
       item.id === itemId ? { ...item, quantity: newQuantity } : item
     );
     
     // Recalculate total amount
-    const totalAmount = updatedItems.reduce(
+    const totalAmount = updatedItems?.reduce(
       (sum, item) => sum + (item.quantity * item.product.price), 0
     );
     
@@ -213,10 +307,10 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
   const removeItem = (itemId: number) => {
     if (!editedOrder) return;
     
-    const updatedItems = editedOrder.items.filter(item => item.id !== itemId);
+    const updatedItems = editedOrder.items?.filter(item => item.id !== itemId);
     
     // Recalculate total amount
-    const totalAmount = updatedItems.reduce(
+    const totalAmount = updatedItems?.reduce(
       (sum, item) => sum + (item.quantity * item.product.price), 0
     );
     
@@ -236,6 +330,15 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
     });
   };
 
+  // Get color variant options for an item
+  const getColorVariantOptions = (item: OrderItem) => {
+    if (!item.product?.colorVariants) return [];
+    return item.product.colorVariants.map((v: any) => ({
+      value: v.id.toString(),
+      label: v.color
+    }));
+  };
+
   // Save full order changes
   const saveFullOrderChanges = async () => {
     if (!editedOrder) return;
@@ -252,7 +355,7 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
           // Keep the original status, don't allow editing it in the modal
           address: editedOrder.address, 
           status: currentStatus, // Use current status, not edited status
-          items: editedOrder.items.map(item => ({
+          items: editedOrder.items?.map(item => ({
             id: item.id,
             quantity: item.quantity,
             productId: item.productId,
@@ -281,12 +384,11 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
 
   // Simple status update
   const handleStatusChange = async () => {
-    if (status === currentStatus) {
-      return;
-    }
-
+    if (status === currentStatus) return;
+    
     setUpdateLoading(true);
     try {
+      console.log(`Updating order ${orderId} status to ${status}`);
       const response = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'PATCH',
         headers: {
@@ -294,18 +396,23 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
         },
         body: JSON.stringify({ status }),
       });
-
-      const data = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update order status');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to update order status');
       }
-
-      toast.success('Statut de commande mis à jour');
+      
+      const data = await response.json();
+      console.log('Success response:', data);
+      
+      toast.success(`Status updated to ${status}`);
       onOrderUpdated();
-      setEditMode(false);
     } catch (error) {
+      console.error('Status update error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update order status');
+      // Reset to previous status on error
+      setStatus(currentStatus);
     } finally {
       setUpdateLoading(false);
     }
@@ -314,20 +421,25 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
   const handleDeleteOrder = async () => {
     setDeleteLoading(true);
     try {
+      console.log(`Deleting order ${orderId}`);
       const response = await fetch(`/api/admin/orders/${orderId}`, {
         method: 'DELETE',
       });
-
-      const data = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete order');
+        const errorData = await response.json();
+        console.error('Delete error response:', errorData);
+        throw new Error(errorData.error || 'Failed to delete order');
       }
-
+      
+      const data = await response.json();
+      console.log('Delete success response:', data);
+      
       toast.success('Commande supprimée avec succès');
       onOrderUpdated();
       setShowDeleteConfirm(false);
     } catch (error) {
+      console.error('Order deletion error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete order');
     } finally {
       setDeleteLoading(false);
@@ -509,7 +621,7 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
                   
                   {editedOrder?.items?.length > 0 ? (
                     <div className="space-y-4">
-                      {editedOrder?.items.map((item) => (
+                      {editedOrder?.items?.map((item) => (
                         <div key={item.id} className="border rounded-md p-3 flex justify-between items-center">
                           <div className="flex-1">
                             <div className="font-medium">{item.product.name}</div>
@@ -517,14 +629,25 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
                               <div>
                                 <label className="block text-xs mb-1 text-gray-600">Taille:</label>
                                 <select 
-                                  value={item.size || ''}
-                                  onChange={(e) => updateItemInfo(item.id, 'size', e.target.value)}
+                                  value={item.sizeId || ''}
+                                  onChange={(e) => updateItemInfo(item.id, 'sizeId', e.target.value)}
                                   className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 >
                                   <option value="">--</option>
-                                  {item.product.sizes.map(size => (
-                                    <option key={size} value={size}>{size}</option>
-                                  ))}
+                                  {Array.isArray(item.product?.sizes) ? 
+                                    item.product.sizes.map(sizeObj => {
+                                      // Log each size object to debug
+                                      console.log('Size object:', sizeObj);
+                                      return (
+                                        <option 
+                                          key={sizeObj.sizeId || (sizeObj.size && sizeObj.size.id)} 
+                                          value={sizeObj.sizeId || (sizeObj.size && sizeObj.size.id)}
+                                        >
+                                          {sizeObj.size ? sizeObj.size.value : `Size ID: ${sizeObj.sizeId}`}
+                                        </option>
+                                      );
+                                    })
+                                  : <option value="">No sizes available</option>}
                                 </select>
                               </div>
                               <div>
@@ -540,10 +663,10 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
                                       // This is the current custom color text value
                                       // Keep it as is - we're just displaying it in the dropdown
                                     } else {
-                                      // Regular color variant selected
+                                       // Regular color variant selected
                                       const colorVariantId = parseInt(value);
-                                      if (!isNaN(colorVariantId)) {
-                                        const selectedVariant = item.product.colorVariants.find(v => v.id === colorVariantId);
+                                      if (!isNaN(colorVariantId) && item.product?.colorVariants) {
+                                        const selectedVariant = item.product.colorVariants.find((v: any) => v.id === colorVariantId);
                                         if (selectedVariant) {
                                           updateItemInfo(item.id, 'color', selectedVariant.color, { colorVariantId });
                                         }

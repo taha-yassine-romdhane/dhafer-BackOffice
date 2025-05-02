@@ -35,6 +35,14 @@ interface OrderItem {
   color?: string;
   productId: number;
   colorVariantId: number;
+  colorVariant?: {
+    id: number;
+    color: string;
+    images: {
+      url: string;
+      isMain: boolean;
+    }[];
+  };
   product: {
     id: number;
     description: string;
@@ -92,22 +100,35 @@ export default function Orders() {
       }
   
       if (Array.isArray(data)) {
+        // Log the first order to see its structure
+        if (data.length > 0) {
+          console.log('First order data:', data[0]);
+          if (data[0].items && data[0].items.length > 0) {
+            console.log('First order item:', data[0].items[0]);
+            console.log('Size information:', data[0].items[0].size);
+          }
+        }
+        
         // Process the orders array
         setOrders(data.map(order => ({
           ...order,
-          items: order.items.map((item: OrderItem) => ({
-            ...item,
-            // Ensure the item structure matches your interface
-            product: {
-              id: item.product.id,
-              name: item.product.name,
-              price: item.product.price,
-              description: item.product.description,
-              salePrice: item.product.salePrice,
-              categories: item.product.categories,
-              sizes: item.product.sizes
-            }
-          }))
+          items: order.items.map((item: OrderItem) => {
+            // Log each item's size information
+            console.log(`Item ${item.id} size:`, item.size);
+            return {
+              ...item,
+              // Ensure the item structure matches your interface
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price,
+                description: item.product.description,
+                salePrice: item.product.salePrice,
+                categories: item.product.categories,
+                sizes: item.product.sizes
+              }
+            };
+          })
         })));
         setError('');
       } else if (data.error) {
@@ -405,9 +426,24 @@ export default function Orders() {
                     <div className="text-xs text-gray-500 mt-1">
                       {order.items.map((item, index) => (
                         <div key={item.id} className="mb-1">
-                          {item.quantity}x {item.product.name}
-                          {item.size && ` - Size: ${item.size.value}`}
-                          {item.color && ` - Color: ${item.color}`}
+                          <strong>{item.quantity}x {item.product.name}</strong>
+                          <div className="text-xs mt-1">
+                            {item.size ? (
+                              <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded mr-1">Taille: {item.size.value}</span>
+                            ) : item.sizeId ? (
+                              <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded mr-1">Taille ID: {item.sizeId}</span>
+                            ) : null}
+                            
+                            {item.colorVariant?.color ? (
+                              <span className="inline-block bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                                Couleur: {item.colorVariant.color}
+                              </span>
+                            ) : item.color ? (
+                              <span className="inline-block bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                                Couleur: {item.color}
+                              </span>
+                            ) : null}
+                          </div>
                           <span className="text-gray-400"> ({(item.quantity * item.product.price).toFixed(2)} TND)</span>
                         </div>
                       ))}

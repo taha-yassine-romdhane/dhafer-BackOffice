@@ -43,6 +43,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
   const [sizes, setSizes] = useState<Size[]>([]);
   const [newCategory, setNewCategory] = useState<string>('');
   const [newSize, setNewSize] = useState<string>('');
+  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string>('FEMME');
   const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
   const [isAddingSize, setIsAddingSize] = useState<boolean>(false);
 
@@ -141,7 +142,10 @@ export default function EditProductPage({ params }: { params: { productId: strin
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newCategory }),
+        body: JSON.stringify({
+          name: newCategory,
+          group: selectedCategoryGroup
+        }),
       });
 
       if (!response.ok) {
@@ -374,30 +378,60 @@ export default function EditProductPage({ params }: { params: { productId: strin
               />
             </div>
 
+            {/* Category Group */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Groupe de catégories
+              </label>
+              <select
+                value={selectedCategoryGroup}
+                onChange={(e) => setSelectedCategoryGroup(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="FEMME">Femme</option>
+                <option value="ENFANT">Enfant</option>
+                <option value="ACCESSOIRE">Accessoire</option>
+              </select>
+            </div>
+
             {/* Categories */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Catégories *
               </label>
-              <div className="mb-2 flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <label key={category.id} className="inline-flex items-center bg-gray-100 px-3 py-1 rounded-full">
-                    <input
-                      type="checkbox"
-                      checked={formData.categoryIds.includes(category.id)}
-                      onChange={(e) => {
-                        const updatedCategories = e.target.checked
-                          ? [...formData.categoryIds, category.id]
-                          : formData.categoryIds.filter(id => id !== category.id);
-                        setFormData(prev => ({ ...prev, categoryIds: updatedCategories }));
-                      }}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
-                    />
-                    <span className="text-sm text-gray-700">{category.name}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="flex items-center mt-2">
+              
+              {/* Group categories by their group */}
+              {['FEMME', 'ENFANT', 'ACCESSOIRE'].map((group) => {
+                const groupCategories = categories.filter(cat => cat.group === group);
+                if (groupCategories.length === 0) return null;
+                
+                return (
+                  <div key={group} className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">{group === 'FEMME' ? 'Femme' : group === 'ENFANT' ? 'Enfant' : 'Accessoire'}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {groupCategories.map((category) => (
+                        <label key={category.id} className="inline-flex items-center bg-gray-100 px-3 py-1 rounded-full">
+                          <input
+                            type="checkbox"
+                            checked={formData.categoryIds.includes(category.id)}
+                            onChange={(e) => {
+                              const updatedCategories = e.target.checked
+                                ? [...formData.categoryIds, category.id]
+                                : formData.categoryIds.filter(id => id !== category.id);
+                              setFormData(prev => ({ ...prev, categoryIds: updatedCategories }));
+                            }}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                          />
+                          <span className="text-sm text-gray-700">{category.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              <div className="flex items-center mt-4">
                 <input
                   type="text"
                   value={newCategory}
