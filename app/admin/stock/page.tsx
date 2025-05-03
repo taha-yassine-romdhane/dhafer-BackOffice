@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Product } from '@/lib/types';
 import { ProductStockDetail } from '@/components/ProductStockDetail';
 import { format } from 'date-fns';
 
@@ -153,16 +152,16 @@ export default function StockManagementPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
+                    Produit
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    In Stock
+                    En Stock
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Out of Stock
+                    Hors Stock
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Updated
+                    Dernière Mise à Jour
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -218,7 +217,7 @@ export default function StockManagementPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.inStockCount} locations
+                            {stockSummary.inStockCount} Details de stock
                           </span>
                           <div className="text-xs text-gray-500">
                             ({Math.round((stockSummary.inStockCount / stockSummary.totalLocations) * 100)}%)
@@ -226,7 +225,7 @@ export default function StockManagementPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.outOfStockCount} locations
+                            {stockSummary.outOfStockCount} Details de stock
                           </span>
                           <div className="text-xs text-gray-500">
                             ({Math.round((stockSummary.outOfStockCount / stockSummary.totalLocations) * 100)}%)
@@ -243,7 +242,7 @@ export default function StockManagementPage() {
                             }}
                             className="text-blue-600 hover:text-blue-900"
                           >
-                            Manage Stock →
+                            Gestion Stock →
                           </button>
                         </td>
                       </tr>

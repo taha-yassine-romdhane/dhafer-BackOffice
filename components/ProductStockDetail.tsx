@@ -198,7 +198,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
             <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back
+            Retour
           </button>
           <h2 className="text-xl font-semibold text-gray-900">{localProduct.name}</h2>
         </div>
@@ -209,7 +209,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                 onClick={discardChanges}
                 className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
-                Discard Changes
+                Annuler les modifications
               </button>
               <button
                 onClick={saveChanges}
@@ -224,10 +224,10 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Saving...
+                    Enregistrement...
                   </>
                 ) : (
-                  'Save Changes'
+                  'Enregistrer les modifications'
                 )}
               </button>
             </>
@@ -302,7 +302,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                   <thead>
                     <tr>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Size
+                        Taille
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
                         Jammel
@@ -317,7 +317,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                         Online
                       </th>
                       <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Last Updated
+                        Dernière Mise à Jour
                       </th>
                     </tr>
                   </thead>
