@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, { params }: { params: { productId: string } }) {
   try {
-    const productId = parseInt(params.id);
+    const productId = parseInt(params.productId);
     
     if (isNaN(productId)) {
       return NextResponse.json(
@@ -15,7 +12,6 @@ export async function GET(
       );
     }
 
-    // Fetch the product with all its related data
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -24,21 +20,12 @@ export async function GET(
             images: true
           }
         },
-        categories: {
-          include: {
-            category: true
-          }
-        },
         sizes: {
           include: {
             size: true
           }
         },
-        stocks: {
-          include: {
-            size: true
-          }
-        }
+        categories: true
       }
     });
 
@@ -49,21 +36,15 @@ export async function GET(
       );
     }
 
-    console.log(`Fetched product ${productId} with sizes:`, 
-      product.sizes.map(s => ({ sizeId: s.sizeId, value: s.size.value }))
-    );
-
     return NextResponse.json({
       success: true,
       product
     });
+
   } catch (error) {
-    console.error(`Error fetching product ${params.id}:`, error);
+    console.error('Error fetching product:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to fetch product' 
-      },
+      { success: false, error: 'Failed to fetch product' },
       { status: 500 }
     );
   }

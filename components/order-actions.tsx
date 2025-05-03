@@ -144,7 +144,7 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
         const updatedItems = await Promise.all(data.items.map(async (item: OrderItem) => {
           try {
             // Fetch the full product details including all available sizes using our new endpoint
-            const productResponse = await fetch(`/api/admin/products/${item.productId}/show`);
+            const productResponse = await fetch(`/api/admin/products/${item.productId}`);
             const productData = await productResponse.json();
             
             if (productResponse.ok && productData && productData.success) {
@@ -321,23 +321,8 @@ export const OrderActions = ({ orderId, currentStatus, onOrderUpdated }: OrderAc
     });
   };
 
-  // Update order status
-  const updateOrderStatus = (newStatus: OrderStatus) => {
-    if (!editedOrder) return;
-    setEditedOrder({
-      ...editedOrder,
-      status: newStatus
-    });
-  };
 
-  // Get color variant options for an item
-  const getColorVariantOptions = (item: OrderItem) => {
-    if (!item.product?.colorVariants) return [];
-    return item.product.colorVariants.map((v: any) => ({
-      value: v.id.toString(),
-      label: v.color
-    }));
-  };
+
 
   // Save full order changes
   const saveFullOrderChanges = async () => {
