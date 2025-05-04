@@ -91,12 +91,12 @@ export default function CategoryPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading categories...</div>;
+    return <div className="flex justify-center py-8">Chargement des catégories...</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Category Management</h1>
+      <h1 className="text-2xl font-bold mb-6">Gestion des catégories</h1>
       <div className="flex gap-2 p-2">
         <p className="text-gray-800 text-sm p-2">
           Règles de modification des catégories :
@@ -116,13 +116,13 @@ export default function CategoryPage() {
       {/* Category Form */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow mb-8">
         <h2 className="text-xl font-semibold mb-4">
-          {editingId ? 'Edit Category' : 'Add New Category'}
+          {editingId ? 'Modifier la catégorie' : 'Ajouter une catégorie'}
         </h2>
 
         <div className="grid grid-cols-1 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Name
+              Nom
             </label>
             <Input
               type="text"
@@ -168,14 +168,14 @@ export default function CategoryPage() {
                 }}
                 className="mr-2 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Cancel
+                Annuler
               </button>
             )}
             <button
               type="submit"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              {editingId ? 'Update Category' : 'Add Category'}
+              {editingId ? 'Mettre à jour la catégorie' : 'Ajouter une catégorie'}
             </button>
           </div>
         </div>
@@ -184,12 +184,12 @@ export default function CategoryPage() {
       {/* Categories List */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Categories</h2>
+          <h2 className="text-lg font-medium text-gray-900">Catégories</h2>
         </div>
         <div className="divide-y divide-gray-200">
           {categories.length === 0 ? (
             <div className="px-6 py-4 text-center text-gray-500">
-              No categories found
+              Aucune catégorie trouvée
             </div>
           ) : (
             categories.map((category) => (

@@ -89,12 +89,12 @@ export default function SizePage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading sizes...</div>;
+    return <div className="flex justify-center py-8">Chargement des tailles...</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Size Management</h1>
+      <h1 className="text-2xl font-bold mb-6">Gestion des tailles</h1>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -111,7 +111,7 @@ export default function SizePage() {
         <div className="grid grid-cols-1 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Value *
+              Valeur
             </label>
             <Input
               type="text"
@@ -142,14 +142,14 @@ export default function SizePage() {
                 }}
                 className="mr-2 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                Cancel
+                Annuler
               </button>
             )}
             <button
               type="submit"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              {editingId ? 'Update Size' : 'Add Size'}
+              {editingId ? 'Mettre à jour la taille' : 'Ajouter une taille'}
             </button>
           </div>
         </div>
@@ -158,12 +158,12 @@ export default function SizePage() {
       {/* Sizes List */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Sizes</h2>
+          <h2 className="text-lg font-medium text-gray-900">Tailles</h2>
         </div>
         <div className="divide-y divide-gray-200">
           {sizes.length === 0 ? (
             <div className="px-6 py-4 text-center text-gray-500">
-              No sizes found
+              Aucune taille trouvée
             </div>
           ) : (
             sizes.map((size) => (

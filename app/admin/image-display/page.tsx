@@ -180,7 +180,7 @@ export default function ImageDisplayPage() {
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Carousel Image Management</h1>
+      <h1 className="text-2xl font-bold mb-6">Gestion des images Carousel</h1>
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -189,11 +189,11 @@ export default function ImageDisplayPage() {
       )}
       
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Upload New Image</h2>
+        <h2 className="text-xl font-semibold mb-4">Ajouter une nouvelle image</h2>
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Section
+            selectionner une section
           </label>
           <select
             value={selectedSection}
@@ -214,12 +214,12 @@ export default function ImageDisplayPage() {
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Image
+            selectionner une image
           </label>
           <div className="flex items-center space-x-4">
             <label className="cursor-pointer bg-blue-50 border-2 border-dashed border-blue-300 rounded-md px-4 py-8 w-full flex flex-col items-center justify-center">
               <Upload className="h-8 w-8 text-blue-500 mb-2" />
-              <span className="text-sm text-gray-600">Click to select an image</span>
+              <span className="text-sm text-gray-600">Cliquez pour select une image</span>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -264,10 +264,10 @@ export default function ImageDisplayPage() {
       </div>
       
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Current Images</h2>
+        <h2 className="text-xl font-semibold mb-4">Images actuelles</h2>
         
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">À Propos Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section À Propos</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {loading ? (
               <div className="col-span-full flex justify-center py-8">
@@ -319,7 +319,7 @@ export default function ImageDisplayPage() {
         </div>
         
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Top Vente 1 Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Top Vente 1</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {loading ? (
               <div className="col-span-full flex justify-center py-8">
@@ -371,7 +371,7 @@ export default function ImageDisplayPage() {
         </div>
         
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Top Vente 2 Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Top Vente 2</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {loading ? (
               <div className="col-span-full flex justify-center py-8">
@@ -407,7 +407,7 @@ export default function ImageDisplayPage() {
 
         {/* New Slider Sections */}
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Slider Home Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Slider Home</h3>
           <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 600px</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loading ? (
@@ -442,7 +442,7 @@ export default function ImageDisplayPage() {
         </div>
 
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Slider Promo Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Slider Promo</h3>
           <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 600px</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loading ? (
@@ -478,7 +478,7 @@ export default function ImageDisplayPage() {
         </div>
 
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Slider Top Vente Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Slider Top Vente</h3>
           <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 600px</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loading ? (
@@ -514,7 +514,7 @@ export default function ImageDisplayPage() {
         </div>
 
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Slider Home Mobile Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Slider Home Mobile</h3>
           <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 753px</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {loading ? (
@@ -550,7 +550,7 @@ export default function ImageDisplayPage() {
         </div>
 
         <div className="mb-8">
-          <h3 className="text-lg font-medium mb-3">Slider Promo Mobile Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Slider Promo Mobile</h3>
           <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 753px</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {loading ? (
@@ -586,7 +586,7 @@ export default function ImageDisplayPage() {
         </div>
 
         <div>
-          <h3 className="text-lg font-medium mb-3">Slider Top Vente Mobile Section</h3>
+          <h3 className="text-lg font-medium mb-3">Section Slider Top Vente Mobile</h3>
           <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 753px</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {loading ? (
