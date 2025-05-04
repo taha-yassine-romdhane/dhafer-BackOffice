@@ -101,9 +101,9 @@ export default function CategoryPage() {
         <p className="text-gray-800 text-sm p-2">
           Règles de modification des catégories :
           <br />
-          1. Il ne faut pas ajouter deux catégories avec le même nom, même si elles n'appartiennent pas au même groupe.
+          1. Vous pouvez ajouter des catégories avec le même nom si elles appartiennent à des groupes différents.
           <br />
-          2. La meilleure pratique consiste à ajouter, par exemple, une catégorie "Koftan" dans le groupe "FEMME" et "Koftan d'enfant" dans le groupe "ENFANT" pour éviter des conflits dans le filtrage des données.
+          2. Par exemple, vous pouvez avoir une catégorie "Koftan" dans le groupe "FEMME" et une autre catégorie "Koftan" dans le groupe "ENFANT".
         </p>
       </div>
 

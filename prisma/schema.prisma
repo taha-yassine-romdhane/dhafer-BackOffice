@@ -169,12 +169,14 @@ enum OrderStatus {
 // New models for dynamic categories and sizes
 model Category {
   id          Int               @id @default(autoincrement())
-  name        String            @unique
+  name        String
   description String?
   group       CategoryGroup     @default(FEMME) // Femme, Enfant, or Accessoire
   products    ProductCategory[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  @@unique([name, group]) // Allow same name in different groups
 }
 
 enum CategoryGroup {
