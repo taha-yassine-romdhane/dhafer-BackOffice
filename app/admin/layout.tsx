@@ -30,7 +30,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <AdminAuth>
-      <div className="flex min-h-screen bg-gray-100">
+      <div className="flex min-h-screen bg-gray-50">
         <aside className="group hidden md:block border-r bg-white transition-all duration-300 hover:w-64 w-16 shrink-0 overflow-hidden">
           <div className="flex h-14 items-center border-b px-4 justify-center group-hover:justify-start overflow-hidden">
             <h1 className="text-lg font-semibold truncate">Administration</h1>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { OrderStatus } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
-import { Filter, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { OrderActions } from '@/components/order-actions';
 
 interface Category {
@@ -299,6 +299,22 @@ export default function Orders() {
     }
   };
 
+  // Translate order status to French
+  const getStatusInFrench = (status: OrderStatus) => {
+    switch (status) {
+      case 'PENDING':
+        return 'EN ATTENTE';
+      case 'SHIPPED':
+        return 'EXPÉDIÉE';
+      case 'DELIVERED':
+        return 'LIVRÉE';
+      case 'CANCELLED':
+        return 'ANNULÉE';
+      default:
+        return status;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -403,7 +419,7 @@ export default function Orders() {
                   : `${getStatusBadgeClass(status)} hover:opacity-80`
               }`}
             >
-              {status}
+              {getStatusInFrench(status)}
             </button>
           ))}
         </div>
