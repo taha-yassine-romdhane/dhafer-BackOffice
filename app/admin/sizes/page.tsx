@@ -105,7 +105,7 @@ export default function SizePage() {
       {/* Size Form */}
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow mb-8">
         <h2 className="text-xl font-semibold mb-4">
-          {editingId ? 'Edit Size' : 'Add New Size'}
+          {editingId ? 'Modifier une taille' : 'Ajouter une taille'}
         </h2>
         
         <div className="grid grid-cols-1 gap-6">
@@ -149,7 +149,7 @@ export default function SizePage() {
               type="submit"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              {editingId ? 'Mettre à jour la taille' : 'Ajouter une taille'}
+              {editingId ? 'Modifier la taille' : 'Ajouter une taille'}
             </button>
           </div>
         </div>
