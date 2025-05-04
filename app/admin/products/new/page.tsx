@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Loader2, X, Plus } from 'lucide-react';
 import Dropzone from '@/components/drop-zone';
 import { Stock, ProductImage, Category, Size } from '@/lib/types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface ColorVariantImages {
   id: number;
@@ -313,7 +315,7 @@ export default function NewProductPage() {
               <label className="block text-sm font-medium text-gray-700">
                 Nom du produit *
               </label>
-              <input
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -346,7 +348,7 @@ export default function NewProductPage() {
                   Catégories *
                 </label>
                 <div className="flex space-x-2 items-center">
-                  <input
+                  <Input
                     type="text"
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
@@ -409,13 +411,13 @@ export default function NewProductPage() {
             {/* Prix */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Prix (TND) *
+                Prix (TND) En cas de Promotion sa devient le prix effacé
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">TND</span>
                 </div>
-                <input
+                <Input
                   type="number"
                   value={formData.price}
                   onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
@@ -431,13 +433,13 @@ export default function NewProductPage() {
             {/* Prix de vente */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Prix de vente (TND)
+                Prix Promotion (TND) En cas de Promotion sa devient le prix de vente
               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">TND</span>
                 </div>
-                <input
+                <Input
                   type="number"
                   value={formData.salePrice !== null ? formData.salePrice : ""}
                   onChange={(e) => setFormData(prev => ({ ...prev, salePrice: e.target.value }))}
@@ -454,7 +456,7 @@ export default function NewProductPage() {
               <label className="block text-sm font-medium text-gray-700">
                 Description *
               </label>
-              <textarea
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}

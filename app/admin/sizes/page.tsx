@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Size } from '@/lib/types';
 import { Edit2, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function SizePage() {
   const [sizes, setSizes] = useState<Size[]>([]);
@@ -111,11 +113,10 @@ export default function SizePage() {
             <label className="block text-sm font-medium text-gray-700">
               Value *
             </label>
-            <input
+            <Input
               type="text"
               value={formData.value}
               onChange={(e) => setFormData({...formData, value: e.target.value})}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />
           </div>
@@ -124,10 +125,9 @@ export default function SizePage() {
             <label className="block text-sm font-medium text-gray-700">
               Description
             </label>
-            <textarea
+            <Textarea
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               rows={3}
             />
           </div>

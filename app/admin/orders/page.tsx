@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { OrderStatus } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
-import { Filter, X, Search } from 'lucide-react';
+import { Filter, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { OrderActions } from '@/components/order-actions';
 
 interface Category {
@@ -56,6 +56,10 @@ interface OrderItem {
         url: string;
       }[];
     }[];
+    images: {
+      url: string;
+    }[];
+    url: string;
   };
 }
 
@@ -84,6 +88,10 @@ export default function Orders() {
   const [minAmountFilter, setMinAmountFilter] = useState('');
   const [maxAmountFilter, setMaxAmountFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchOrders();
@@ -125,7 +133,10 @@ export default function Orders() {
                 description: item.product.description,
                 salePrice: item.product.salePrice,
                 categories: item.product.categories,
-                sizes: item.product.sizes
+                sizes: item.product.sizes,
+                colorVariants: item.product.colorVariants || [],
+                images: item.product.images || [],
+                url: item.product.url || ''
               }
             };
           })
@@ -151,63 +162,104 @@ export default function Orders() {
   const handleExportToExcel = async () => {
     setExportLoading(true);
     try {
-      // Prepare data for export
-      const exportData = orders.map(order => {
-        // Flatten order items into a comma-separated string
-        const itemsList = order.items.map((item: OrderItem) => 
-          `${item.quantity}x ${item.product.name} (${item.size || 'No Size'}${item.color ? `, ${item.color}` : ''})`
-        ).join('; ')
-
-        return {
-          'ID de la commande': order.id,
-          'Date': new Date(order.createdAt).toLocaleDateString(),
-          'Nom du client': order.customerName,
-          'Numéro de téléphone': order.phoneNumber,
-          'Adresse': order.address,
-          'Articles': itemsList,
-          'Montant total': `${order.totalAmount.toFixed(2)} TND`,
-          'Statut': order.status
+      // Create an array to hold all rows for the export
+      // Each order item will be on its own row, similar to the image
+      interface ExportRow {
+        'N° com.': number;
+        'Date': string;
+        'Nom du client': string;
+        'Numéro de téléphone': string;
+        'Adresse': string;
+        'Articles': string;
+        'Taille': string;
+        'Couleur': string;
+        'Prix unitaire': string;
+        'Montant total': string;
+        'Statut': string;
+      }
+      
+      const exportRows: ExportRow[] = [];
+      
+      // Process each order and create separate rows for each item
+      orders.forEach(order => {
+        // If order has no items, create one row with just the order info
+        if (!order.items || order.items.length === 0) {
+          exportRows.push({
+            'N° com.': order.id,
+            'Date': new Date(order.createdAt).toLocaleDateString('fr-FR'),
+            'Nom du client': order.customerName,
+            'Numéro de téléphone': order.phoneNumber,
+            'Adresse': order.address,
+            'Articles': 'Aucun article',
+            'Taille': '',
+            'Couleur': '',
+            'Prix unitaire': '',
+            'Montant total': `${order.totalAmount.toFixed(2)} TND`,
+            'Statut': order.status
+          });
+        } else {
+          // Create a row for each item in the order
+          order.items.forEach(item => {
+            exportRows.push({
+              'N° com.': order.id,
+              'Date': new Date(order.createdAt).toLocaleDateString('fr-FR'),
+              'Nom du client': order.customerName,
+              'Numéro de téléphone': order.phoneNumber,
+              'Adresse': order.address,
+              'Articles': item.product.name,
+              'Taille': item.size ? item.size.value : (item.sizeId ? `ID: ${item.sizeId}` : 'N/A'),
+              'Couleur': item.colorVariant?.color || item.color || 'N/A',
+              'Prix unitaire': `${item.product.price.toFixed(2)} TND`,
+              'Montant total': `${order.totalAmount.toFixed(2)} TND`,
+              'Statut': order.status
+            });
+          });
         }
       });
 
-      // Create worksheet
-      const ws = XLSX.utils.json_to_sheet(exportData);
-
-      // Set column widths
-      const colWidths = [
-        { wch: 10 }, // Order ID
-        { wch: 12 }, // Date
-        { wch: 20 }, // Customer Name
-        { wch: 15 }, // Phone Number
-        { wch: 30 }, // Address
-        { wch: 50 }, // Items
-        { wch: 15 }, // Total Amount
-        { wch: 12 }, // Status
-      ];
-      ws['!cols'] = colWidths;
-
-      // Create workbook
+      // Create a new workbook
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Orders');
-
-      // Generate filename with current date
-      const date = new Date().toISOString().split('T')[0];
-      const fileName = `orders_export_${date}.xlsx`;
-
-      // Save file
-      XLSX.writeFile(wb, fileName);
-      toast.success('Orders exported successfully!');
+      
+      // Convert the data to a worksheet
+      const ws = XLSX.utils.json_to_sheet(exportRows);
+      
+      // Set column widths for better readability
+      const colWidths = [
+        { wch: 8 },   // N° com.
+        { wch: 12 },  // Date
+        { wch: 20 },  // Nom du client
+        { wch: 15 },  // Numéro de téléphone
+        { wch: 25 },  // Adresse
+        { wch: 30 },  // Articles
+        { wch: 10 },  // Taille
+        { wch: 15 },  // Couleur
+        { wch: 12 },  // Prix unitaire
+        { wch: 12 },  // Montant total
+        { wch: 12 }   // Statut
+      ];
+      
+      ws['!cols'] = colWidths;
+      
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
+      
+      // Generate the Excel file
+      const now = new Date();
+      const dateStr = `${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`;
+      XLSX.writeFile(wb, `commandes_export_${dateStr}.xlsx`);
+      
+      toast.success('Export réussi !');
     } catch (error) {
-      console.error('Error exporting orders:', error);
-      toast.error('Failed to export orders');
+      console.error('Export error:', error);
+      toast.error('Erreur lors de l\'export');
     } finally {
       setExportLoading(false);
     }
   };
 
   // Order updated callback
-  const handleOrderUpdated = async () => {
-    await fetchOrders();
+  const handleOrderUpdated = () => {
+    fetchOrders();
   };
 
   // Apply all filters
@@ -218,29 +270,32 @@ export default function Orders() {
     .filter(order => !endDateFilter || new Date(order.createdAt) <= new Date(`${endDateFilter}T23:59:59`))
     .filter(order => !minAmountFilter || order.totalAmount >= parseFloat(minAmountFilter))
     .filter(order => !maxAmountFilter || order.totalAmount <= parseFloat(maxAmountFilter));
+    
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
-  const resetFilters = () => {
-    setStatusFilter('all');
-    setCustomerNameFilter('');
-    setStartDateFilter('');
-    setEndDateFilter('');
-    setMinAmountFilter('');
-    setMaxAmountFilter('');
+  const paginate = (pageNumber: number) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
   };
+
 
   const getStatusBadgeClass = (status: OrderStatus) => {
     switch (status) {
-      case 'DELIVERED':
-        return 'bg-green-100 text-green-800';
-      case 'SHIPPED':
-        return 'bg-blue-100 text-blue-800';
-      case 'CONFIRMED':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
       case 'PENDING':
+        return 'bg-yellow-100 text-yellow-800 border-gray-500';
+      case 'SHIPPED':
+        return 'bg-purple-100 text-purple-800 border-gray-500';
+      case 'DELIVERED':
+        return 'bg-green-100 text-green-800 border-gray-500';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800 border-gray-500';
       default:
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-gray-100 text-gray-800 border-gray-500';
     }
   };
 
@@ -258,13 +313,7 @@ export default function Orders() {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Commandes</h1>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium"
-            >
-              <Filter size={16} />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </button>
+
             <button
               onClick={handleExportToExcel}
               disabled={exportLoading || orders.length === 0}
@@ -277,17 +326,18 @@ export default function Orders() {
                 </>
               ) : (
                 <>
-                  <svg 
-                    className="w-4 h-4" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                     />
                   </svg>
                   Exporter à Excel
@@ -297,103 +347,67 @@ export default function Orders() {
           </div>
         </div>
 
-        {showFilters && (
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 border border-gray-200">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium">Filtres</h3>
-              <button 
-                onClick={resetFilters}
-                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
-              >
-                <X size={14} />
-                Reset
-              </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Status Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="all">Toutes les commandes</option>
-                  {Object.values(OrderStatus).map((status) => (
-                    <option key={status} value={status}>
-                      {status.charAt(0) + status.slice(1).toLowerCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Customer Name Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom du client</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search size={16} className="text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    value={customerNameFilter}
-                    onChange={(e) => setCustomerNameFilter(e.target.value)}
-                    placeholder="Rechercher par nom"
-                    className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Date Range Filter */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date début</label>
-                  <input
-                    type="date"
-                    value={startDateFilter}
-                    onChange={(e) => setStartDateFilter(e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Date fin</label>
-                  <input
-                    type="date"
-                    value={endDateFilter}
-                    onChange={(e) => setEndDateFilter(e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              {/* Amount Range Filter */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Montant min</label>
-                  <input
-                    type="number"
-                    value={minAmountFilter}
-                    onChange={(e) => setMinAmountFilter(e.target.value)}
-                    placeholder="0"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Montant max</label>
-                  <input
-                    type="number"
-                    value={maxAmountFilter}
-                    onChange={(e) => setMaxAmountFilter(e.target.value)}
-                    placeholder="1000"
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-            </div>
+        {/* Search bar */}
+        <div className="relative mb-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
           </div>
-        )}
-      </div>
+          <input
+            type="text"
+            placeholder="Rechercher par nom de client..."
+            value={customerNameFilter}
+            onChange={(e) => {
+              setCustomerNameFilter(e.target.value);
+              setCurrentPage(1); // Reset to first page when searching
+            }}
+            className="pl-10 pr-10 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          {customerNameFilter && (
+            <button
+              onClick={() => {
+                setCustomerNameFilter('');
+                setCurrentPage(1); // Reset to first page when clearing search
+              }}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </div>
 
+        {/* Status filter buttons */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => {
+              setStatusFilter('all');
+              setCurrentPage(1); // Reset to first page when changing filter
+            }}
+            className={`px-3 py-1 rounded-full text-sm ${
+              statusFilter === 'all'
+                ? 'bg-indigo-100 text-indigo-800 font-medium'
+                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+            }`}
+          >
+            Tous
+          </button>
+          {Object.values(OrderStatus).map((status) => (
+            <button
+              key={status}
+              onClick={() => {
+                setStatusFilter(status);
+                setCurrentPage(1); // Reset to first page when changing filter
+              }}
+              className={`px-3 py-1 rounded-full text-sm ${
+                statusFilter === status
+                  ? 'bg-indigo-100 text-indigo-800 font-medium'
+                  : `${getStatusBadgeClass(status)} hover:opacity-80`
+              }`}
+            >
+              {status}
+            </button>
+          ))}
+        </div>
+      </div>
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
           {error}
@@ -413,7 +427,7 @@ export default function Orders() {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => (
+              currentItems.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{order.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -424,7 +438,7 @@ export default function Orders() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="font-medium">{order.totalAmount.toFixed(2)} TND</div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {order.items.map((item, index) => (
+                      {order.items.map((item) => (
                         <div key={item.id} className="mb-1">
                           <strong>{item.quantity}x {item.product.name}</strong>
                           <div className="text-xs mt-1">
@@ -463,13 +477,81 @@ export default function Orders() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                   Aucune commande trouvée
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        
+        {/* Pagination */}
+        {filteredOrders.length > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              Affichage de {indexOfFirstItem + 1} à {Math.min(indexOfLastItem, filteredOrders.length)} sur {filteredOrders.length} commandes
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`h-8 w-8 p-0 flex items-center justify-center rounded-md ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 border border-gray-300'}`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                // Logic to show pages around current page
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => paginate(pageNum)}
+                    className={`h-8 w-8 p-0 flex items-center justify-center rounded-md ${currentPage === pageNum ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-100 border border-gray-300'}`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`h-8 w-8 p-0 flex items-center justify-center rounded-md ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100 border border-gray-300'}`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Afficher</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1); // Reset to first page when changing items per page
+                }}
+                className="h-8 rounded-md border-gray-300 text-sm px-2"
+              >
+                {[5, 10, 25, 50].map(value => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+              <span className="text-sm text-gray-500">par page</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

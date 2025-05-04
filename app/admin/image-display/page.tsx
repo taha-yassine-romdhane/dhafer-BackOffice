@@ -7,7 +7,7 @@ import Image from 'next/image';
 interface CarouselImage {
   id: string;
   url: string;
-  section: 'about' | 'topvente1' | 'topvente2';
+  section: 'about' | 'topvente1' | 'topvente2' | 'SliderHome' | 'SliderPromo' | 'SliderTopVente' | 'SliderTopVenteMobile' | 'SliderHomeMobile' | 'SliderPromoMobile';
   filename: string;
   createdAt: string;
 }
@@ -29,7 +29,7 @@ export default function ImageDisplayPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedSection, setSelectedSection] = useState<'about' | 'topvente1' | 'topvente2'>('about');
+  const [selectedSection, setSelectedSection] = useState<'about' | 'topvente1' | 'topvente2' | 'SliderHome' | 'SliderPromo' | 'SliderTopVente' | 'SliderTopVenteMobile' | 'SliderHomeMobile' | 'SliderPromoMobile'>('about');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -164,7 +164,7 @@ export default function ImageDisplayPage() {
     }
   };
 
-  const getSectionImages = (section: 'about' | 'topvente1' | 'topvente2') => {
+  const getSectionImages = (section: 'about' | 'topvente1' | 'topvente2' | 'SliderHome' | 'SliderPromo' | 'SliderTopVente' | 'SliderTopVenteMobile' | 'SliderHomeMobile' | 'SliderPromoMobile') => {
     switch (section) {
       case 'about':
         return aboutImages;
@@ -172,6 +172,9 @@ export default function ImageDisplayPage() {
         return topVente1Images;
       case 'topvente2':
         return topVente2Images;
+      // New sections don't have default images
+      default:
+        return [];
     }
   };
 
@@ -200,6 +203,12 @@ export default function ImageDisplayPage() {
             <option value="about">À Propos</option>
             <option value="topvente1">Top Vente 1</option>
             <option value="topvente2">Top Vente 2</option>
+            <option value="SliderHome">Slider Home</option>
+            <option value="SliderPromo">Slider Promo</option>
+            <option value="SliderTopVente">Slider Top Vente</option>
+            <option value="SliderTopVenteMobile">Slider Top Vente Mobile</option>
+            <option value="SliderHomeMobile">Slider Home Mobile</option>
+            <option value="SliderPromoMobile">Slider Promo Mobile</option>
           </select>
         </div>
         
@@ -275,6 +284,7 @@ export default function ImageDisplayPage() {
                           src={image.url}
                           alt={image.filename}
                           fill
+                          className="w-full h-full"
                           style={{ objectFit: 'cover' }}
                         />
                       </div>
@@ -326,6 +336,7 @@ export default function ImageDisplayPage() {
                           src={image.url}
                           alt={image.filename}
                           fill
+                          className="w-full h-full"
                           style={{ objectFit: 'cover' }}
                         />
                       </div>
@@ -359,7 +370,7 @@ export default function ImageDisplayPage() {
           </div>
         </div>
         
-        <div>
+        <div className="mb-8">
           <h3 className="text-lg font-medium mb-3">Top Vente 2 Section</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {loading ? (
@@ -377,6 +388,7 @@ export default function ImageDisplayPage() {
                           src={image.url}
                           alt={image.filename}
                           fill
+                          className="w-full h-full"
                           style={{ objectFit: 'cover' }}
                         />
                       </div>
@@ -388,23 +400,222 @@ export default function ImageDisplayPage() {
                       </button>
                     </div>
                   ))}
-                
-                {/* Show hardcoded images */}
-                {topVente2Images.map((src, index) => (
-                  <div key={`topvente2-${index}`} className="relative group">
-                    <div className="aspect-square relative rounded-md overflow-hidden border border-gray-200">
-                      <Image
-                        src={src}
-                        alt={`Top Vente 2 image ${index + 1}`}
-                        fill
-                        style={{ objectFit: 'cover' }}
-                      />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* New Slider Sections */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Slider Home Section</h3>
+          <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 600px</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loading ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <>
+                {uploadedImages
+                  .filter((img) => img.section === 'SliderHome')
+                  .map((image) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-[1920/600] relative rounded-md overflow-hidden border border-gray-200">
+                        <Image
+                          src={image.url}
+                          alt={image.filename}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div className="absolute top-2 right-2 bg-yellow-500 text-white p-1 rounded-full">
-                      <ImageIcon className="w-4 h-4" />
+                  ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Slider Promo Section</h3>
+          <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 600px</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loading ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <>
+                {uploadedImages
+                  .filter((img) => img.section === 'SliderPromo')
+                  .map((image) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-[1920/600] relative rounded-md overflow-hidden border border-gray-200">
+                        <Image
+                          src={image.url}
+                          alt={image.filename}
+                          fill
+                          className="w-full h-full"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Slider Top Vente Section</h3>
+          <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 600px</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loading ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <>
+                {uploadedImages
+                  .filter((img) => img.section === 'SliderTopVente')
+                  .map((image) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-[1920/600] relative rounded-md overflow-hidden border border-gray-200">
+                        <Image
+                          src={image.url}
+                          alt={image.filename}
+                          fill
+                          className="w-full h-full"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Slider Home Mobile Section</h3>
+          <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 753px</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {loading ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <>
+                {uploadedImages
+                  .filter((img) => img.section === 'SliderHomeMobile')
+                  .map((image) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-[1920/600] relative rounded-md overflow-hidden border border-gray-200">
+                        <Image
+                          src={image.url}
+                          alt={image.filename}
+                          fill
+                          className="w-full h-full"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-3">Slider Promo Mobile Section</h3>
+          <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 753px</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {loading ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <>
+                {uploadedImages
+                  .filter((img) => img.section === 'SliderPromoMobile')
+                  .map((image) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-[1920/600] relative rounded-md overflow-hidden border border-gray-200">
+                        <Image
+                          src={image.url}
+                          alt={image.filename}
+                          fill
+                          className="w-full h-full"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium mb-3">Slider Top Vente Mobile Section</h3>
+          <p className="text-sm text-gray-500 mb-2">Images optimales: format 1920px × 753px</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {loading ? (
+              <div className="col-span-full flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <>
+                {uploadedImages
+                  .filter((img) => img.section === 'SliderTopVenteMobile')
+                  .map((image) => (
+                    <div key={image.id} className="relative group">
+                      <div className="aspect-[1920/600] relative rounded-md overflow-hidden border border-gray-200">
+                        <Image
+                          src={image.url}
+                          alt={image.filename}
+                          fill
+                          className="w-full h-full"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDelete(image.id)}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
               </>
             )}
           </div>

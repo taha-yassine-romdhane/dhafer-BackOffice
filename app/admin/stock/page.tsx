@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { ProductStockDetail } from '@/components/ProductStockDetail';
 import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
 
 // Define local interfaces for the stock management page
 interface StockItem {
@@ -116,12 +117,11 @@ export default function StockManagementPage() {
         {/* Search and Navigation */}
         <div className="flex items-center gap-4">
           {!selectedProduct && (
-            <input
+            <Input
               type="text"
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           )}
         </div>

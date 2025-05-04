@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Category } from '@/lib/types';
 import { Pencil, Trash } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function CategoryPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -111,13 +113,12 @@ export default function CategoryPage() {
         <div className="grid grid-cols-1 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Name *
+              Name 
             </label>
-            <input
+            <Input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             />
           </div>
@@ -126,22 +127,20 @@ export default function CategoryPage() {
             <label className="block text-sm font-medium text-gray-700">
               Description
             </label>
-            <textarea
+            <Textarea
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               rows={3}
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Group *
+              Group
             </label>
             <select
               value={formData.group}
               onChange={(e) => setFormData({...formData, group: e.target.value as any})}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               required
             >
               <option value="FEMME">Femme</option>

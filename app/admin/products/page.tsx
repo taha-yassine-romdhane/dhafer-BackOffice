@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product, Category } from '@/lib/types';
+import { Search, Filter, X, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -122,54 +125,132 @@ export default function ProductsPage() {
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Gérer votre catalogue de produits
-          </p>
+          <p className="mt-2 text-sm text-gray-700">Gérer votre catalogue de produits</p>
         </div>
-        <button
+        <Button
           onClick={() => router.push('/admin/products/new')}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#D4AF37] hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="bg-[#D4AF37] hover:bg-[#D4AF37]/90 text-white"
         >
+          <Plus className="mr-2 h-4 w-4" />
           Ajouter un nouveau produit
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <input
-            type="text"
-            placeholder="Rechercher des produits..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          />
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium flex items-center">
+            <Filter className="mr-2 h-5 w-5 text-gray-500" />
+            Filtres
+          </h2>
+          {(searchTerm || selectedCategoryId !== 'all' || selectedCategoryGroup !== 'all') && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategoryId('all');
+                setSelectedCategoryGroup('all');
+              }}
+              className="text-xs"
+            >
+              <X className="mr-1 h-3 w-3" />
+              Réinitialiser
+            </Button>
+          )}
         </div>
-        <div>
-          <select
-            value={typeof selectedCategoryId === 'number' ? selectedCategoryId.toString() : selectedCategoryId}
-            onChange={(e) => setSelectedCategoryId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            {categoryOptions.map(category => (
-              <option key={category.id.toString()} value={category.id.toString()}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+        
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {/* Search */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="h-5 w-5 text-[#D4AF37]" aria-hidden="true" />
+            </div>
+            <Input
+              type="text"
+              placeholder="Rechercher des produits..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 py-6 border-[#D4AF37]/20 focus:border-[#D4AF37] focus:ring-[#D4AF37] shadow-sm"
+            />
+            {searchTerm && (
+              <button
+                className="absolute inset-y-0 right-0 flex items-center pr-3 transition-colors"
+                onClick={() => setSearchTerm('')}
+                aria-label="Clear search"
+              >
+                <X className="h-5 w-5 text-gray-400 hover:text-[#D4AF37]" />
+              </button>
+            )}
+          </div>
+          
+          {/* Category Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+            <select
+              value={typeof selectedCategoryId === 'number' ? selectedCategoryId.toString() : selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base"
+            >
+              {categoryOptions.map(category => (
+                <option key={category.id.toString()} value={category.id.toString()}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Group Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
+            <select
+              value={selectedCategoryGroup}
+              onChange={(e) => setSelectedCategoryGroup(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base"
+            >
+              <option value="all">Tous les groupes</option>
+              <option value="FEMME">Femme</option>
+              <option value="ENFANT">Enfant</option>
+              <option value="ACCESSOIRE">Accessoire</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <select
-            value={selectedCategoryGroup}
-            onChange={(e) => setSelectedCategoryGroup(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="all">Tous les groupes</option>
-            <option value="FEMME">Femme</option>
-            <option value="ENFANT">Enfant</option>
-            <option value="ACCESSOIRE">Accessoire</option>
-          </select>
-        </div>
+        
+        {/* Active Filters */}
+        {(searchTerm || selectedCategoryId !== 'all' || selectedCategoryGroup !== 'all') && (
+          <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+            <span className="text-sm text-gray-500 mr-2 pt-1">Filtres actifs:</span>
+            {searchTerm && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                Recherche: {searchTerm}
+                <button onClick={() => setSearchTerm('')} className="ml-1 text-gray-500 hover:text-gray-700">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {selectedCategoryId !== 'all' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                Catégorie: {categories.find(c => c.id === selectedCategoryId)?.name}
+                <button onClick={() => setSelectedCategoryId('all')} className="ml-1 text-gray-500 hover:text-gray-700">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {selectedCategoryGroup !== 'all' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                Groupe: {selectedCategoryGroup === 'FEMME' ? 'Femme' : selectedCategoryGroup === 'ENFANT' ? 'Enfant' : 'Accessoire'}
+                <button onClick={() => setSelectedCategoryGroup('all')} className="ml-1 text-gray-500 hover:text-gray-700">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Results Count */}
+      <div className="mt-4 mb-2 text-sm text-gray-500">
+        {filteredProducts.length} produit{filteredProducts.length !== 1 ? 's' : ''} trouvé{filteredProducts.length !== 1 ? 's' : ''}
       </div>
 
       {/* Products Grid */}

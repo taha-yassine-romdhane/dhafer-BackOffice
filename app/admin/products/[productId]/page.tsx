@@ -6,6 +6,8 @@ import { Loader2, X, Plus } from 'lucide-react';
 import Dropzone from '@/components/drop-zone';
 import { Stock, ProductImage, Category, Size, ProductCategory, ProductSize } from '@/lib/types';
 import Image from 'next/image';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface ColorVariantImages {
   id: string;
@@ -26,12 +28,6 @@ export interface FormData {
   sizeIds: number[];
   collaborateur: string | null;
   colorVariants: ColorVariantImages[];
-}
-
-interface EditProductPageProps {
-  params: {
-    productId: string;
-  };
 }
 
 export default function EditProductPage({ params }: { params: { productId: string } }) {
@@ -369,7 +365,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
               <label className="block text-sm font-medium text-gray-700">
                 Nom du produit *
               </label>
-              <input
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
@@ -398,7 +394,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
             {/* Categories */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Catégories *
+                Catégories
               </label>
               
               {/* Group categories by their group */}
@@ -432,7 +428,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
               })}
               
               <div className="flex items-center mt-4">
-                <input
+                <Input
                   type="text"
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
@@ -459,7 +455,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">TND</span>
                 </div>
-                <input
+                <Input
                   type="number"
                   value={formData.price}
                   onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
@@ -481,7 +477,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">TND</span>
                 </div>
-                <input
+                <Input
                   type="number"
                   value={formData.salePrice !== null ? formData.salePrice : ""}
                   onChange={(e) => setFormData(prev => ({ ...prev, salePrice: e.target.value }))}
@@ -498,7 +494,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
               <label className="block text-sm font-medium text-gray-700">
                 Description *
               </label>
-              <textarea
+              <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
@@ -531,7 +527,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
                 ))}
               </div>
               <div className="flex items-center mt-2">
-                <input
+                <Input
                   type="text"
                   value={newSize}
                   onChange={(e) => setNewSize(e.target.value)}
@@ -556,7 +552,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Variants de couleur</h2>
             <div className="flex gap-2 items-center">
-              <input
+              <Input
                 type="text"
                 value={currentColor}
                 onChange={(e) => setCurrentColor(e.target.value)}
