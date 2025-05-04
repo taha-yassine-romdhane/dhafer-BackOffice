@@ -33,7 +33,7 @@ export default function ProductsPage() {
 
       const productsData = await productsResponse.json();
       const categoriesData = await categoriesResponse.json();
-      
+
       // Set products
       if (productsData.success && Array.isArray(productsData.products)) {
         setProducts(productsData.products);
@@ -80,7 +80,7 @@ export default function ProductsPage() {
     if (!product.categories || product.categories.length === 0) {
       return 'Non catégorisé';
     }
-    
+
     return product.categories
       .map(pc => pc.category.name)
       .join(', ');
@@ -89,20 +89,20 @@ export default function ProductsPage() {
   // Filter products based on search term, selected category, and category group
   const filteredProducts = products.filter(product => {
     // Match search term
-    const matchesSearch = 
+    const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     // Match selected category
-    const matchesCategory = 
-      selectedCategoryId === 'all' || 
+    const matchesCategory =
+      selectedCategoryId === 'all' ||
       product.categories.some(pc => pc.categoryId === selectedCategoryId);
-    
+
     // Match selected category group
     const matchesCategoryGroup =
       selectedCategoryGroup === 'all' ||
       product.categories.some(pc => pc.category.group === selectedCategoryGroup);
-    
+
     return matchesSearch && matchesCategory && matchesCategoryGroup;
   });
 
@@ -125,7 +125,16 @@ export default function ProductsPage() {
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
-          <p className="mt-2 text-sm text-gray-700">Gérer votre catalogue de produits</p>
+          <p className="mt-2 text-md text-gray-700">Gérer votre catalogue de produits</p>
+          <div className="flex gap-2">
+            <p className="text-gray-800 text-s">
+              Règles de modification des produits :
+              <br />
+              1. Si vous modifiez les couleur ou les tailles d'un produit les commandes associées à ce produit ne son pas livrées, ces commandes seront perdues les informations .
+              <br />
+              2. La meilliere pratique est de travailler est de extraire les Commandes en excel de  a Jour.
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => router.push('/admin/products/new')}
@@ -144,8 +153,8 @@ export default function ProductsPage() {
             Filtres
           </h2>
           {(searchTerm || selectedCategoryId !== 'all' || selectedCategoryGroup !== 'all') && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => {
                 setSearchTerm('');
@@ -159,7 +168,7 @@ export default function ProductsPage() {
             </Button>
           )}
         </div>
-        
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {/* Search */}
           <div className="relative">
@@ -183,7 +192,7 @@ export default function ProductsPage() {
               </button>
             )}
           </div>
-          
+
           {/* Category Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
@@ -199,7 +208,7 @@ export default function ProductsPage() {
               ))}
             </select>
           </div>
-          
+
           {/* Group Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
@@ -215,7 +224,7 @@ export default function ProductsPage() {
             </select>
           </div>
         </div>
-        
+
         {/* Active Filters */}
         {(searchTerm || selectedCategoryId !== 'all' || selectedCategoryGroup !== 'all') && (
           <div className="mt-4 flex flex-wrap gap-2 pt-3 border-t border-gray-200">
@@ -247,7 +256,7 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
-      
+
       {/* Results Count */}
       <div className="mt-4 mb-2 text-sm text-gray-500">
         {filteredProducts.length} produit{filteredProducts.length !== 1 ? 's' : ''} trouvé{filteredProducts.length !== 1 ? 's' : ''}
@@ -270,8 +279,8 @@ export default function ProductsPage() {
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900">{product.name}</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {product.description.length > 100 
-                  ? `${product.description.substring(0, 100)}...` 
+                {product.description.length > 100
+                  ? `${product.description.substring(0, 100)}...`
                   : product.description}
               </p>
               <div className="mt-2 flex flex-wrap gap-1">

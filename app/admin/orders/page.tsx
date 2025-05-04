@@ -71,6 +71,7 @@ interface Order {
   totalAmount: number;
   status: OrderStatus;
   createdAt: string;
+  userId: number;
   items: OrderItem[];
 }
 
@@ -80,7 +81,7 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [error, setError] = useState<string>('');
   const [exportLoading, setExportLoading] = useState(false);
-  
+
   // Additional filter states
   const [customerNameFilter, setCustomerNameFilter] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
@@ -88,7 +89,7 @@ export default function Orders() {
   const [minAmountFilter, setMinAmountFilter] = useState('');
   const [maxAmountFilter, setMaxAmountFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -100,13 +101,13 @@ export default function Orders() {
   const fetchOrders = async () => {
     try {
       const response = await fetch(`/api/admin/orders?timestamp=${Date.now()}`);
-      
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch orders');
       }
-  
+
       if (Array.isArray(data)) {
         // Log the first order to see its structure
         if (data.length > 0) {
@@ -116,7 +117,7 @@ export default function Orders() {
             console.log('Size information:', data[0].items[0].size);
           }
         }
-        
+
         // Process the orders array
         setOrders(data.map(order => ({
           ...order,
@@ -177,9 +178,9 @@ export default function Orders() {
         'Montant total': string;
         'Statut': string;
       }
-      
+
       const exportRows: ExportRow[] = [];
-      
+
       // Process each order and create separate rows for each item
       orders.forEach(order => {
         // If order has no items, create one row with just the order info
@@ -219,10 +220,10 @@ export default function Orders() {
 
       // Create a new workbook
       const wb = XLSX.utils.book_new();
-      
+
       // Convert the data to a worksheet
       const ws = XLSX.utils.json_to_sheet(exportRows);
-      
+
       // Set column widths for better readability
       const colWidths = [
         { wch: 8 },   // N° com.
@@ -237,17 +238,17 @@ export default function Orders() {
         { wch: 12 },  // Montant total
         { wch: 12 }   // Statut
       ];
-      
+
       ws['!cols'] = colWidths;
-      
+
       // Add the worksheet to the workbook
       XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
-      
+
       // Generate the Excel file
       const now = new Date();
       const dateStr = `${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`;
       XLSX.writeFile(wb, `commandes_export_${dateStr}.xlsx`);
-      
+
       toast.success('Export réussi !');
     } catch (error) {
       console.error('Export error:', error);
@@ -270,7 +271,7 @@ export default function Orders() {
     .filter(order => !endDateFilter || new Date(order.createdAt) <= new Date(`${endDateFilter}T23:59:59`))
     .filter(order => !minAmountFilter || order.totalAmount >= parseFloat(minAmountFilter))
     .filter(order => !maxAmountFilter || order.totalAmount <= parseFloat(maxAmountFilter));
-    
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -328,39 +329,50 @@ export default function Orders() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Commandes</h1>
-          <div className="flex gap-2">
+          <button
+            onClick={handleExportToExcel}
+            disabled={exportLoading || orders.length === 0}
+            className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium"
+          >
+            {exportLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Exporter à Excel
+              </>
+            )}
+          </button>
+        </div>
 
-            <button
-              onClick={handleExportToExcel}
-              disabled={exportLoading || orders.length === 0}
-              className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium"
-            >
-              {exportLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                    />
-                  </svg>
-                  Exporter à Excel
-                </>
-              )}
-            </button>
-          </div>
+        <div className="flex gap-2 mb-4">
+          <h2 className="text-gray-800 text-sm">
+            Règles de modification des commandes :
+            <br />
+            1. Si le statut de la commande est "Livrée", vous ne pouvez plus modifier les informations de la commande.
+            <br />
+            2. Vous ne pouvez modifier que les informations du produit et de la localisation du client. Le nom et le numéro de téléphone du client ne peuvent pas être modifiés.
+            <br />
+            3. Si le statut de la commande change pour "Livrée" et que la commande est associée à un utilisateur, celui-ci gagnera un point de fidélité.
+            <br />
+            4. Vous pouvez exporter les informations de la commande en Excel pour faciliter l'importation des commandes vers la société de livraison.
+          </h2>
         </div>
 
         {/* Search bar */}
@@ -398,11 +410,10 @@ export default function Orders() {
               setStatusFilter('all');
               setCurrentPage(1); // Reset to first page when changing filter
             }}
-            className={`px-3 py-1 rounded-full text-sm ${
-              statusFilter === 'all'
+            className={`px-3 py-1 rounded-full text-sm ${statusFilter === 'all'
                 ? 'bg-indigo-100 text-indigo-800 font-medium'
                 : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Tous
           </button>
@@ -413,11 +424,10 @@ export default function Orders() {
                 setStatusFilter(status);
                 setCurrentPage(1); // Reset to first page when changing filter
               }}
-              className={`px-3 py-1 rounded-full text-sm ${
-                statusFilter === status
+              className={`px-3 py-1 rounded-full text-sm ${statusFilter === status
                   ? 'bg-indigo-100 text-indigo-800 font-medium'
                   : `${getStatusBadgeClass(status)} hover:opacity-80`
-              }`}
+                }`}
             >
               {getStatusInFrench(status)}
             </button>
@@ -436,6 +446,7 @@ export default function Orders() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Info du client</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client avec Account</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details Commande</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -452,6 +463,13 @@ export default function Orders() {
                     <div className="text-xs text-gray-400">{order.address}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {order.userId ? (
+                      <div className="font-medium">Oui</div>
+                    ) : (
+                      <div className="font-medium">Non</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="font-medium">{order.totalAmount.toFixed(2)} TND</div>
                     <div className="text-xs text-gray-500 mt-1">
                       {order.items.map((item) => (
@@ -463,7 +481,7 @@ export default function Orders() {
                             ) : item.sizeId ? (
                               <span className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded mr-1">Taille ID: {item.sizeId}</span>
                             ) : null}
-                            
+
                             {item.colorVariant?.color ? (
                               <span className="inline-block bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
                                 Couleur: {item.colorVariant.color}
@@ -483,9 +501,9 @@ export default function Orders() {
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <OrderActions 
-                      orderId={order.id} 
-                      currentStatus={order.status} 
+                    <OrderActions
+                      orderId={order.id}
+                      currentStatus={order.status}
                       onOrderUpdated={handleOrderUpdated}
                     />
                   </td>
@@ -500,7 +518,7 @@ export default function Orders() {
             )}
           </tbody>
         </table>
-        
+
         {/* Pagination */}
         {filteredOrders.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200">
@@ -529,7 +547,7 @@ export default function Orders() {
                 } else {
                   pageNum = currentPage - 2 + i;
                 }
-                
+
                 return (
                   <button
                     key={pageNum}

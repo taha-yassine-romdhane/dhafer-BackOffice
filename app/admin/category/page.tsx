@@ -42,7 +42,7 @@ export default function CategoryPage() {
     }
 
     try {
-      const url = editingId 
+      const url = editingId
         ? `/api/admin/categories/${editingId}`
         : '/api/admin/categories';
       const method = editingId ? 'PUT' : 'POST';
@@ -97,7 +97,16 @@ export default function CategoryPage() {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Category Management</h1>
-      
+      <div className="flex gap-2 p-2">
+        <p className="text-gray-800 text-sm p-2">
+          Règles de modification des catégories :
+          <br />
+          1. Il ne faut pas ajouter deux catégories avec le même nom, même si elles n'appartiennent pas au même groupe.
+          <br />
+          2. La meilleure pratique consiste à ajouter, par exemple, une catégorie "Koftan" dans le groupe "FEMME" et "Koftan d'enfant" dans le groupe "ENFANT" pour éviter des conflits dans le filtrage des données.
+        </p>
+      </div>
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
@@ -109,16 +118,16 @@ export default function CategoryPage() {
         <h2 className="text-xl font-semibold mb-4">
           {editingId ? 'Edit Category' : 'Add New Category'}
         </h2>
-        
+
         <div className="grid grid-cols-1 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Name 
+              Name
             </label>
             <Input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
@@ -129,7 +138,7 @@ export default function CategoryPage() {
             </label>
             <Textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
             />
           </div>
@@ -140,7 +149,7 @@ export default function CategoryPage() {
             </label>
             <select
               value={formData.group}
-              onChange={(e) => setFormData({...formData, group: e.target.value as any})}
+              onChange={(e) => setFormData({ ...formData, group: e.target.value as any })}
               required
             >
               <option value="FEMME">Femme</option>
@@ -199,13 +208,13 @@ export default function CategoryPage() {
                     onClick={() => handleEdit(category)}
                     className="text-sm text-indigo-600 hover:text-indigo-900"
                   >
-                    <Pencil/>
+                    <Pencil />
                   </button>
                   <button
                     onClick={() => handleDelete(category.id)}
                     className="text-sm text-red-600 hover:text-red-900"
                   >
-                    <Trash/>
+                    <Trash />
                   </button>
                 </div>
               </div>

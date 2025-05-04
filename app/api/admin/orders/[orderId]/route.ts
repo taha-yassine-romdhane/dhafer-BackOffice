@@ -85,9 +85,14 @@ export async function PATCH(
         );
       }
 
-      // Check if order exists
+      // Check if order exists and include userId
       const existingOrder = await prisma.order.findUnique({
-        where: { id: orderId }
+        where: { id: orderId },
+        select: {
+          id: true,
+          status: true,
+          userId: true
+        }
       });
 
       if (!existingOrder) {
@@ -97,20 +102,55 @@ export async function PATCH(
         );
       }
 
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
-        data: { status: status as OrderStatus },
-        include: {
-          items: {
+      // Check if status is being changed to SHIPPED and if the order is associated with a user
+      if (status === 'DELIVERED' && existingOrder.status !== 'DELIVERED' && existingOrder.userId) {
+        console.log(`Order ${orderId} status changed to DELIVERED. Awarding fidelity point to user ${existingOrder.userId}`);
+        
+        // Update the order status and award fidelity point in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+          // Update order status
+          const updatedOrder = await tx.order.update({
+            where: { id: orderId },
+            data: { status: status as OrderStatus },
             include: {
-              product: true,
-              colorVariant: true
+              items: {
+                include: {
+                  product: true,
+                  colorVariant: true
+                }
+              }
+            }
+          });
+          
+          // Award fidelity point to the user
+          if (existingOrder.userId) {
+            await tx.user.update({
+              where: { id: existingOrder.userId },
+              data: { fidelityPoints: { increment: 1 } }
+            });
+          }
+          
+          return updatedOrder;
+        });
+        
+        return NextResponse.json(result);
+      } else {
+        // Regular status update without fidelity point
+        const updatedOrder = await prisma.order.update({
+          where: { id: orderId },
+          data: { status: status as OrderStatus },
+          include: {
+            items: {
+              include: {
+                product: true,
+                colorVariant: true
+              }
             }
           }
-        }
-      });
-
-      return NextResponse.json(updatedOrder);
+        });
+        
+        return NextResponse.json(updatedOrder);
+      }
     } 
     // Full order update with customer information and potentially items
     else {
@@ -179,8 +219,11 @@ export async function PATCH(
                 where: { id: item.id },
                 data: {
                   quantity: item.quantity,
-                  size: item.size,
-                  color: item.color
+                  sizeId: item.sizeId,
+                  color: item.color,
+                  price: item.price,
+                  productId: item.productId,
+                  colorVariantId: item.colorVariantId,
                 }
               });
             }
@@ -195,7 +238,7 @@ export async function PATCH(
           });
 
           const totalAmount = updatedItems.reduce(
-            (sum, item) => sum + (item.quantity * item.product.price), 
+            (sum, item) => sum + (item.quantity * item.price), 
             0
           );
 
@@ -242,8 +285,7 @@ export async function PUT(
   try {
     const body = await request.json();
     const orderId = parseInt(params.orderId);
-    
-    const { customerName, phoneNumber, address, status, items } = body;
+    const { address, status, items } = body;
     
     if (!orderId || isNaN(orderId)) {
       return NextResponse.json(

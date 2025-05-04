@@ -246,6 +246,7 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-gray-900">
             Gestion des stocks par taille
           </h3>
+          <p className="text-sm text-gray-500">{analytics.stockProducts?.length || 0} produits</p>
           {analytics.stockProducts && analytics.stockProducts.length > 0 && (
             <a href="/admin/stock" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center">
               Voir tous les stocks 
