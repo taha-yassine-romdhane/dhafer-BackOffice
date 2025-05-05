@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { OrderActions } from '@/components/order-actions';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface Category {
   id: number;
@@ -319,7 +320,7 @@ export default function Orders() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <LoadingSpinner />
       </div>
     );
   }

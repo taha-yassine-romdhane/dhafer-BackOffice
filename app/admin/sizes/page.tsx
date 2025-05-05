@@ -2,9 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { Size } from '@/lib/types';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function SizePage() {
   const [sizes, setSizes] = useState<Size[]>([]);
@@ -15,6 +26,8 @@ export default function SizePage() {
     description: ''
   });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sizeToDelete, setSizeToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchSizes();
@@ -73,23 +86,43 @@ export default function SizePage() {
     setEditingId(size.id);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this size?')) return;
+  const openDeleteDialog = (id: number) => {
+    setSizeToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!sizeToDelete) return;
 
     try {
-      const response = await fetch(`/api/admin/sizes/${id}`, {
+      // Fix: Send the ID in the request body as expected by the API
+      const response = await fetch(`/api/admin/sizes`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: sizeToDelete }),
       });
 
       if (!response.ok) throw new Error('Failed to delete size');
+      
       fetchSizes();
+      toast.success('Taille supprimée avec succès');
+      setDeleteDialogOpen(false);
+      setSizeToDelete(null);
     } catch (err) {
+      console.error('Error deleting size:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete size');
+      toast.error('Échec de la suppression de la taille');
     }
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Chargement des tailles...</div>;
+    return (
+      <div className="flex justify-center items-center py-16">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (
@@ -182,7 +215,7 @@ export default function SizePage() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(size.id)}
+                    onClick={() => openDeleteDialog(size.id)}
                     className="text-sm text-red-600 hover:text-red-900"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -193,6 +226,27 @@ export default function SizePage() {
           )}
         </div>
       </div>
+
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmer la suppression</DialogTitle>
+          <DialogDescription>
+            Êtes-vous sûr de vouloir supprimer cette taille ? Cette action ne peut pas être annulée.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            Supprimer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 }

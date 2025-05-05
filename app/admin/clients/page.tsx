@@ -23,6 +23,15 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface Client {
   id: number
@@ -41,6 +50,8 @@ export default function ClientsPage() {
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState<number | null>(null)
 
   useEffect(() => {
     fetchClients()
@@ -84,21 +95,28 @@ export default function ClientsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) return
+  const openDeleteDialog = (id: number) => {
+    setClientToDelete(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!clientToDelete) return
 
     try {
-      const response = await fetch(`/api/admin/clients/${id}`, {
+      const response = await fetch(`/api/admin/clients/${clientToDelete}`, {
         method: 'DELETE',
       })
 
       if (!response.ok) throw new Error('Failed to delete client')
       
-      setClients(clients.filter(client => client.id !== id))
-      toast.success('Client deleted successfully')
+      setClients(clients.filter(client => client.id !== clientToDelete))
+      toast.success('Client supprimé avec succès')
+      setDeleteDialogOpen(false)
+      setClientToDelete(null)
     } catch (error) {
       console.error('Error deleting client:', error)
-      toast.error('Failed to delete client')
+      toast.error('Échec de la suppression du client')
     }
   }
 
@@ -156,7 +174,7 @@ export default function ClientsPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return <LoadingSpinner />
   }
 
   return (
@@ -260,9 +278,10 @@ export default function ClientsPage() {
                   <TableCell>{client.fidelityPoints}</TableCell>
                   <TableCell>
                     <Button
-                      variant="destructive"
+                      variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(client.id)}
+                      onClick={() => openDeleteDialog(client.id)}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -342,6 +361,26 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer ce client ? Cette action ne peut pas être annulée.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, ArrowUpDown, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface TopClient {
   id: number;
@@ -96,6 +96,10 @@ export default function TopClientsPage() {
       <ChevronDown className="ml-2 h-4 w-4" />
     );
   };
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">

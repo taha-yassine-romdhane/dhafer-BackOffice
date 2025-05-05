@@ -1,8 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Loader2, Upload, Trash, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Upload, Trash, Image as ImageIcon, Check } from 'lucide-react';
 import Image from 'next/image';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';   
 
 interface CarouselImage {
   id: string;
@@ -31,6 +42,12 @@ export default function ImageDisplayPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<'about' | 'topvente1' | 'topvente2' | 'SliderHome' | 'SliderPromo' | 'SliderTopVente' | 'SliderTopVenteMobile' | 'SliderHomeMobile' | 'SliderPromoMobile'>('about');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dialog states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState<string | null>(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [uploadedSectionName, setUploadedSectionName] = useState('');
 
   useEffect(() => {
     fetchUploadedImages();
@@ -137,7 +154,9 @@ export default function ImageDisplayPage() {
       }
       
       // Show success message
-      alert(`Image uploaded successfully to ${selectedSection} section!`);
+      setUploadedSectionName(getSectionDisplayName(selectedSection));
+      setSuccessDialogOpen(true);
+      toast.success('Image téléchargée avec succès');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
@@ -145,11 +164,16 @@ export default function ImageDisplayPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+  const openDeleteDialog = (id: string) => {
+    setImageToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!imageToDelete) return;
 
     try {
-      const response = await fetch(`/api/admin/carousel-images?id=${id}`, {
+      const response = await fetch(`/api/admin/carousel-images?id=${imageToDelete}`, {
         method: 'DELETE',
       });
 
@@ -158,25 +182,41 @@ export default function ImageDisplayPage() {
       }
 
       await fetchUploadedImages();
-      alert('Image deleted successfully!');
+      toast.success('Image supprimée avec succès');
+      setDeleteDialogOpen(false);
+      setImageToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete image');
+      toast.error('Échec de la suppression de l\'image');
     }
   };
 
   const getSectionImages = (section: 'about' | 'topvente1' | 'topvente2' | 'SliderHome' | 'SliderPromo' | 'SliderTopVente' | 'SliderTopVenteMobile' | 'SliderHomeMobile' | 'SliderPromoMobile') => {
-    switch (section) {
-      case 'about':
-        return aboutImages;
-      case 'topvente1':
-        return topVente1Images;
-      case 'topvente2':
-        return topVente2Images;
-      // New sections don't have default images
-      default:
-        return [];
-    }
+    return uploadedImages.filter(img => img.section === section);
   };
+  
+  const getSectionDisplayName = (section: 'about' | 'topvente1' | 'topvente2' | 'SliderHome' | 'SliderPromo' | 'SliderTopVente' | 'SliderTopVenteMobile' | 'SliderHomeMobile' | 'SliderPromoMobile') => {
+    const sectionMap = {
+      'about': 'À Propos',
+      'topvente1': 'Top Vente 1',
+      'topvente2': 'Top Vente 2',
+      'SliderHome': 'Slider Home',
+      'SliderPromo': 'Slider Promo',
+      'SliderTopVente': 'Slider Top Vente',
+      'SliderTopVenteMobile': 'Slider Top Vente Mobile',
+      'SliderHomeMobile': 'Slider Home Mobile',
+      'SliderPromoMobile': 'Slider Promo Mobile'
+    };
+    return sectionMap[section] || section;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
@@ -289,7 +329,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -341,7 +381,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -393,7 +433,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -429,7 +469,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -465,7 +505,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -501,7 +541,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -537,7 +577,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -573,7 +613,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -609,7 +649,7 @@ export default function ImageDisplayPage() {
                         />
                       </div>
                       <button
-                        onClick={() => handleDelete(image.id)}
+                        onClick={() => openDeleteDialog(image.id)}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash className="w-4 h-4" />
@@ -621,6 +661,49 @@ export default function ImageDisplayPage() {
           </div>
         </div>
       </div>
-    </div>
-  );
+   
+    
+        {/* delete Dialog */}
+    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmer la suppression</DialogTitle>
+          <DialogDescription>
+            Êtes-vous sûr de vouloir supprimer cette image ? Cette action ne peut pas être annulée.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            Supprimer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    
+    {/* Success Dialog */}
+    <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Image téléchargée avec succès</DialogTitle>
+          <DialogDescription>
+            Votre image a été téléchargée avec succès dans la section {uploadedSectionName}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-center my-4">
+          <div className="bg-green-100 p-3 rounded-full">
+            <Check className="h-8 w-8 text-green-600" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => setSuccessDialogOpen(false)}>
+            Fermer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+)
 }

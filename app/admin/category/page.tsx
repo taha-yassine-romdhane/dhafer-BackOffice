@@ -5,6 +5,17 @@ import { Category } from '@/lib/types';
 import { Pencil, Trash } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function CategoryPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -16,6 +27,8 @@ export default function CategoryPage() {
     group: 'FEMME' as 'FEMME' | 'ENFANT' | 'ACCESSOIRE'
   });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCategories();
@@ -75,23 +88,36 @@ export default function CategoryPage() {
     setEditingId(category.id);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+  const openDeleteDialog = (id: number) => {
+    setCategoryToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
 
     try {
-      const response = await fetch(`/api/admin/categories/${id}`, {
+      const response = await fetch(`/api/admin/categories/${categoryToDelete}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete category');
       fetchCategories();
+      toast.success('Catégorie supprimée avec succès');
+      setDeleteDialogOpen(false);
+      setCategoryToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete category');
+      toast.error('Échec de la suppression de la catégorie');
     }
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Chargement des catégories...</div>;
+    return (
+      <div className="flex justify-center items-center py-16">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (
@@ -211,7 +237,7 @@ export default function CategoryPage() {
                     <Pencil />
                   </button>
                   <button
-                    onClick={() => handleDelete(category.id)}
+                    onClick={() => openDeleteDialog(category.id)}
                     className="text-sm text-red-600 hover:text-red-900"
                   >
                     <Trash />
@@ -222,6 +248,27 @@ export default function CategoryPage() {
           )}
         </div>
       </div>
+ 
+
+    {/* Delete Confirmation Dialog */}
+    <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmer la suppression</DialogTitle>
+          <DialogDescription>
+            Êtes-vous sûr de vouloir supprimer cette catégorie ? Cette action ne peut pas être annulée.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            Annuler
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            Supprimer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 }

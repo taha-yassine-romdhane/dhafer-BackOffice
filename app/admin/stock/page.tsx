@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { ProductStockDetail } from '@/components/ProductStockDetail';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Define local interfaces for the stock management page
 interface StockItem {
@@ -108,6 +109,10 @@ export default function StockManagementPage() {
 
     return { inStockCount, outOfStockCount, totalLocations };
   };
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="space-y-6">

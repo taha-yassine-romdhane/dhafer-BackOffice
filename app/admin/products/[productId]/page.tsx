@@ -8,6 +8,7 @@ import { Stock, ProductImage, Category, Size, ProductCategory, ProductSize } fro
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export interface ColorVariantImages {
   id: string;
@@ -341,6 +342,10 @@ export default function EditProductPage({ params }: { params: { productId: strin
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">

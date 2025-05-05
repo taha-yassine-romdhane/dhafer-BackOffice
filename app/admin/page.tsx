@@ -98,7 +98,7 @@ interface Analytics {
       online: { inStock: number; outOfStock: number };
     };
   };
-  stockProducts?: ProductWithStock[];
+  stockProducts: ProductWithStock[];
 }
 
 const statusColors = {
@@ -107,6 +107,33 @@ const statusColors = {
   SHIPPED: 'rgb(59, 130, 246)',
   DELIVERED: 'rgb(34, 197, 94)',
   CANCELLED: 'rgb(239, 68, 68)',
+};
+
+// French translations for order statuses
+const statusTranslations = {
+  PENDING: 'En Attente',
+  CONFIRMED: 'Confirmée',
+  SHIPPED: 'Expédiée',
+  DELIVERED: 'Livrée',
+  CANCELLED: 'Annulée',
+};
+
+// French translations for days of the week
+const dayTranslations: Record<string, string> = {
+  'Mon': 'Lun',
+  'Tue': 'Mar',
+  'Wed': 'Mer',
+  'Thu': 'Jeu',
+  'Fri': 'Ven',
+  'Sat': 'Sam',
+  'Sun': 'Dim',
+  'Monday': 'Lundi',
+  'Tuesday': 'Mardi',
+  'Wednesday': 'Mercredi',
+  'Thursday': 'Jeudi',
+  'Friday': 'Vendredi',
+  'Saturday': 'Samedi',
+  'Sunday': 'Dimanche'
 };
 
 export default function AdminDashboard() {
@@ -137,6 +164,8 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   useEffect(() => {
     fetchAnalytics();
@@ -173,17 +202,17 @@ export default function AdminDashboard() {
   };
 
   const salesChartData = {
-    labels: analytics.salesData.labels,
+    labels: analytics.salesData.labels.map(label => dayTranslations[label as keyof typeof dayTranslations] || label),
     datasets: [
       {
-        label: 'Total Sales',
+        label: 'Total Ventes',
         data: analytics.salesData.data,
         fill: false,
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1,
       },
       ...Object.entries(analytics.salesByStatus).map(([status, data]) => ({
-        label: `${status} Sales`,
+        label: `${statusTranslations[status as OrderStatus]} Ventes`,
         data: data,
         fill: false,
         borderColor: statusColors[status as OrderStatus],
@@ -194,7 +223,7 @@ export default function AdminDashboard() {
   };
 
   const orderStatusChartData = {
-    labels: analytics.ordersByStatus.map((item) => item.status),
+    labels: analytics.ordersByStatus.map((item) => statusTranslations[item.status]),
     datasets: [
       {
         data: analytics.ordersByStatus.map((item) => item.count),
@@ -211,6 +240,15 @@ export default function AdminDashboard() {
       legend: {
         position: 'top' as const,
       },
+      tooltip: {
+        callbacks: {
+          title: (context: any) => {
+            // Translate day in tooltip title if it's a day of the week
+            const title = context[0]?.label || '';
+            return dayTranslations[title] || title;
+          }
+        }
+      }
     },
   };
 
@@ -259,82 +297,163 @@ export default function AdminDashboard() {
         </div>
         
         {analytics.stockProducts && analytics.stockProducts.length > 0 ? (
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Couleur</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taille</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jammel</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tunis</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sousse</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Online</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière MAJ</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {analytics.stockProducts.slice(0, 5).flatMap(product => 
-                  product.colorVariants.flatMap(variant => 
-                    variant.stocks.map(stock => (
-                      <tr key={`${product.id}-${variant.id}-${stock.id}`} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center">
-                            {variant.images && variant.images.length > 0 ? (
-                              <div className="w-8 h-8 rounded-full overflow-hidden mr-2 border border-gray-200">
-                                <img 
-                                  src={variant.images[0].url} 
-                                  alt={variant.color} 
-                                  className="w-full h-full object-cover"
-                                />
+          <>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Couleur</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taille</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jammel</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tunis</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sousse</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Online</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière MAJ</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {analytics.stockProducts
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .flatMap(product => 
+                      product.colorVariants.flatMap(variant => 
+                        variant.stocks.map(stock => (
+                          <tr key={`${product.id}-${variant.id}-${stock.id}`} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center">
+                                {variant.images && variant.images.length > 0 ? (
+                                  <div className="w-8 h-8 rounded-full overflow-hidden mr-2 border border-gray-200">
+                                    <img 
+                                      src={variant.images[0].url} 
+                                      alt={variant.color} 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gray-200 mr-2 flex items-center justify-center">
+                                    <span className="text-xs text-gray-500">N/A</span>
+                                  </div>
+                                )}
+                                <span className="text-sm">{variant.color}</span>
                               </div>
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-gray-200 mr-2 flex items-center justify-center">
-                                <span className="text-xs text-gray-500">N/A</span>
-                              </div>
-                            )}
-                            <span className="text-sm">{variant.color}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-sm font-medium text-blue-700">
-                            {stock.size?.value || 'N/A'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockJammel ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {stock.inStockJammel ? 'En stock' : 'Rupture'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockTunis ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {stock.inStockTunis ? 'En stock' : 'Rupture'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockSousse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {stock.inStockSousse ? 'En stock' : 'Rupture'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center">
-                          <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockOnline ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {stock.inStockOnline ? 'En stock' : 'Rupture'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-500">
-                          {new Date(stock.updatedAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-        ) : (
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-sm font-medium text-blue-700">
+                                {stock.size?.value || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockJammel ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {stock.inStockJammel ? 'En stock' : 'Rupture'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockTunis ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {stock.inStockTunis ? 'En stock' : 'Rupture'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockSousse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {stock.inStockSousse ? 'En stock' : 'Rupture'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockOnline ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {stock.inStockOnline ? 'En stock' : 'Rupture'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-500">
+                              {new Date(stock.updatedAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Pagination Controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-3 sm:space-y-0">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Afficher</span>
+                <select 
+                  value={itemsPerPage} 
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1); // Reset to first page when changing items per page
+                  }}
+                  className="border border-gray-300 rounded-md text-sm py-1 px-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-gray-500">éléments par page</span>
+              </div>
+              
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage)) }, (_, i) => {
+                    const pageNum = i + 1;
+                    const totalPages = Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage);
+                    
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      pageNum === 1 || 
+                      pageNum === totalPages ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1 rounded-md ${currentPage === pageNum ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      (pageNum === 2 && currentPage > 3) ||
+                      (pageNum === totalPages - 1 && currentPage < totalPages - 2)
+                    ) {
+                      return <span key={pageNum} className="px-2">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage)))}
+                  disabled={currentPage >= Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage)}
+                  className={`px-3 py-1 rounded-md ${currentPage >= Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="text-sm text-gray-500">
+                Affichage de {Math.min((currentPage - 1) * itemsPerPage + 1, analytics.stockProducts?.length || 0)} à {Math.min(currentPage * itemsPerPage, analytics.stockProducts?.length || 0)} sur {analytics.stockProducts?.length || 0} produits
+              </div>
+            </div>
+          </>
+          ) : (
           <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -392,7 +511,7 @@ export default function AdminDashboard() {
                             : 'bg-yellow-100 text-yellow-800'
                         }`}
                       >
-                        {order.status}
+                        {statusTranslations[order.status] || order.status}
                       </span>
                     </td>
                   </tr>
@@ -427,7 +546,7 @@ export default function AdminDashboard() {
                         : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
-                    {statusData.status}
+                    {statusTranslations[statusData.status] || statusData.status}
                   </span>
                 </div>
                 <div className="text-sm">

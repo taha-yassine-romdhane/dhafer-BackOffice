@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Product } from '@/lib/types';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 type DisplayType = 'home' | 'promo' | 'topSales';
 
@@ -110,7 +111,7 @@ export default function ProductDisplayManager() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+        <LoadingSpinner />
       </div>
     );
   }
