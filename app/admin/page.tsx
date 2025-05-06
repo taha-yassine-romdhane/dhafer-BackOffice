@@ -166,6 +166,17 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  
+  // Flattened stock rows for pagination
+  const flattenedStockRows = analytics.stockProducts.flatMap(product => 
+    product.colorVariants.flatMap(variant => 
+      variant.stocks.map(stock => ({
+        product,
+        variant,
+        stock
+      }))
+    )
+  );
 
   useEffect(() => {
     fetchAnalytics();
@@ -285,7 +296,7 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-gray-900">
             Gestion des stocks par taille
           </h3>
-          <p className="text-sm text-gray-500">{analytics.stockProducts?.length || 0} produits</p>
+          <p className="text-sm text-gray-500">{flattenedStockRows.length} lignes</p>
           {analytics.stockProducts && analytics.stockProducts.length > 0 && (
             <a href="/admin/stock" className="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center">
               Voir tous les stocks 
@@ -313,11 +324,9 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {analytics.stockProducts
+                  {flattenedStockRows
                     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .flatMap(product => 
-                      product.colorVariants.flatMap(variant => 
-                        variant.stocks.map(stock => (
+                    .map(({ product, variant, stock }) => (
                           <tr key={`${product.id}-${variant.id}-${stock.id}`} className="hover:bg-gray-50">
                             <td className="px-4 py-3 whitespace-nowrap">
                               <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -369,9 +378,8 @@ export default function AdminDashboard() {
                               {new Date(stock.updatedAt).toLocaleDateString()}
                             </td>
                           </tr>
-                        ))
-                      )
-                    )}
+                    ))}
+                  
                 </tbody>
               </table>
             </div>
@@ -408,9 +416,9 @@ export default function AdminDashboard() {
                 </button>
                 
                 <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage)) }, (_, i) => {
+                  {Array.from({ length: Math.min(5, Math.ceil(flattenedStockRows.length / itemsPerPage)) }, (_, i) => {
                     const pageNum = i + 1;
-                    const totalPages = Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage);
+                    const totalPages = Math.ceil(flattenedStockRows.length / itemsPerPage);
                     
                     // Show first page, last page, current page, and pages around current
                     if (
@@ -438,9 +446,9 @@ export default function AdminDashboard() {
                 </div>
                 
                 <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage)))}
-                  disabled={currentPage >= Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage)}
-                  className={`px-3 py-1 rounded-md ${currentPage >= Math.ceil((analytics.stockProducts?.length || 0) / itemsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(flattenedStockRows.length / itemsPerPage)))}
+                  disabled={currentPage >= Math.ceil(flattenedStockRows.length / itemsPerPage)}
+                  className={`px-3 py-1 rounded-md ${currentPage >= Math.ceil(flattenedStockRows.length / itemsPerPage) ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -449,7 +457,7 @@ export default function AdminDashboard() {
               </div>
               
               <div className="text-sm text-gray-500">
-                Affichage de {Math.min((currentPage - 1) * itemsPerPage + 1, analytics.stockProducts?.length || 0)} à {Math.min(currentPage * itemsPerPage, analytics.stockProducts?.length || 0)} sur {analytics.stockProducts?.length || 0} produits
+                Affichage de {Math.min((currentPage - 1) * itemsPerPage + 1, flattenedStockRows.length)} à {Math.min(currentPage * itemsPerPage, flattenedStockRows.length)} sur {flattenedStockRows.length} lignes
               </div>
             </div>
           </>
