@@ -23,27 +23,20 @@ export async function PUT(request: Request) {
         );
       }
       
-      // Check that at least one location stock status is provided
-      const hasLocationStatus = 
-        'inStockJammel' in stock || 
-        'inStockTunis' in stock || 
-        'inStockSousse' in stock || 
-        'inStockOnline' in stock;
+      // Check that online stock status is provided
+      const hasOnlineStatus = 'inStockOnline' in stock;
       
-      if (!hasLocationStatus) {
+      if (!hasOnlineStatus) {
         return NextResponse.json(
-          { success: false, error: 'Invalid input: each stock must have at least one location status' },
+          { success: false, error: 'Invalid input: each stock must have online status' },
           { status: 400 }
         );
       }
       
-      // Validate that all provided location statuses are boolean
-      if ('inStockJammel' in stock && typeof stock.inStockJammel !== 'boolean' ||
-          'inStockTunis' in stock && typeof stock.inStockTunis !== 'boolean' ||
-          'inStockSousse' in stock && typeof stock.inStockSousse !== 'boolean' ||
-          'inStockOnline' in stock && typeof stock.inStockOnline !== 'boolean') {
+      // Validate that online status is boolean
+      if (typeof stock.inStockOnline !== 'boolean') {
         return NextResponse.json(
-          { success: false, error: 'Invalid input: all location stock statuses must be boolean' },
+          { success: false, error: 'Invalid input: online stock status must be boolean' },
           { status: 400 }
         );
       }
@@ -58,9 +51,6 @@ export async function PUT(request: Request) {
           data: updateData,
           select: {
             id: true,
-            inStockJammel: true,
-            inStockTunis: true,
-            inStockSousse: true,
             inStockOnline: true,
             size: true,
             colorId: true,

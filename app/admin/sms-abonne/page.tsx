@@ -421,19 +421,7 @@ export default function SMSAbonnePage() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Select 
-                      value={filterOption} 
-                      onValueChange={(value) => setFilterOption(value as 'all' | 'active' | 'inactive')}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue placeholder="Filtrer par" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous</SelectItem>
-                        <SelectItem value="active">Abonnés</SelectItem>
-                        <SelectItem value="inactive">Non abonnés</SelectItem>
-                      </SelectContent>
-                    </Select>
+             
                     
                     <Select 
                       value={sortOption} 
@@ -467,7 +455,7 @@ export default function SMSAbonnePage() {
                         <TableHead className="hidden md:table-cell">Source</TableHead>
                         <TableHead>Téléphone</TableHead>
                         <TableHead className="hidden md:table-cell">Dernière commande</TableHead>
-                        <TableHead>Statut</TableHead>
+              
                         <TableHead className="w-10">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -499,15 +487,6 @@ export default function SMSAbonnePage() {
                             <TableCell className="hidden md:table-cell">{subscriber.source || 'Site web'}</TableCell>
                             <TableCell>{subscriber.phoneNumber}</TableCell>
                             <TableCell className="hidden md:table-cell">{formatDate(subscriber.createdAt)}</TableCell>
-                            <TableCell>
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                subscriber.isActive 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {subscriber.isActive ? 'Abonné' : 'Non abonné'}
-                              </span>
-                            </TableCell>
                             <TableCell>
                               <Button 
                                 variant="ghost" 

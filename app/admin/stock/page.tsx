@@ -10,9 +10,6 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 // Define local interfaces for the stock management page
 interface StockItem {
   id: number;
-  inStockJammel: boolean;
-  inStockTunis: boolean;
-  inStockSousse: boolean;
   inStockOnline: boolean;
   size: string;
   colorId: number;
@@ -89,19 +86,10 @@ export default function StockManagementPage() {
 
     product.colorVariants.forEach(variant => {
       variant.stocks.forEach(stock => {
-        // Count each location separately
-        totalLocations += 4; // 4 locations per stock item
+        // Only count online stock status
+        totalLocations += 1; // Only 1 location (online) per stock item
         
         // Count available locations
-        if (stock.inStockJammel) inStockCount++;
-        else outOfStockCount++;
-        
-        if (stock.inStockTunis) inStockCount++;
-        else outOfStockCount++;
-        
-        if (stock.inStockSousse) inStockCount++;
-        else outOfStockCount++;
-        
         if (stock.inStockOnline) inStockCount++;
         else outOfStockCount++;
       });
@@ -222,7 +210,7 @@ export default function StockManagementPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.inStockCount} Details de stock
+                            {stockSummary.inStockCount} Produits en stock
                           </span>
                           <div className="text-xs text-gray-500">
                             ({Math.round((stockSummary.inStockCount / stockSummary.totalLocations) * 100)}%)
@@ -230,7 +218,7 @@ export default function StockManagementPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-900">
-                            {stockSummary.outOfStockCount} Details de stock
+                            {stockSummary.outOfStockCount} Produits hors stock
                           </span>
                           <div className="text-xs text-gray-500">
                             ({Math.round((stockSummary.outOfStockCount / stockSummary.totalLocations) * 100)}%)

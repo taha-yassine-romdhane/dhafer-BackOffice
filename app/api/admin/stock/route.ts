@@ -27,9 +27,6 @@ export async function GET() {
             stocks: {
               select: {
                 id: true,
-                inStockJammel: true,
-                inStockTunis: true,
-                inStockSousse: true,
                 inStockOnline: true,
                 size: true,
                 colorId: true,
@@ -69,33 +66,20 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { stockId, location, status } = await request.json();
-    console.log('Updating stock:', { stockId, location, status });
+    const { stockId, status } = await request.json();
+    console.log('Updating stock:', { stockId, status });
 
-    if (typeof stockId !== 'number' || typeof status !== 'boolean' || !location) {
+    if (typeof stockId !== 'number' || typeof status !== 'boolean') {
       return NextResponse.json(
         { success: false, error: 'Invalid input' },
         { status: 400 }
       );
     }
 
-    // Determine which field to update based on location
-    const updateData: any = {};
-    
-    if (location === 'Jammel') {
-      updateData.inStockJammel = status;
-    } else if (location === 'Tunis') {
-      updateData.inStockTunis = status;
-    } else if (location === 'Sousse') {
-      updateData.inStockSousse = status;
-    } else if (location === 'Online') {
-      updateData.inStockOnline = status;
-    } else {
-      return NextResponse.json(
-        { success: false, error: 'Invalid location' },
-        { status: 400 }
-      );
-    }
+    // Update online stock status
+    const updateData = {
+      inStockOnline: status
+    };
 
     // Update the specific location field
     const updatedStock = await prisma.stock.update({
@@ -103,9 +87,6 @@ export async function PUT(request: Request) {
       data: updateData,
       select: {
         id: true,
-        inStockJammel: true,
-        inStockTunis: true,
-        inStockSousse: true,
         inStockOnline: true,
         size: true,
         colorId: true,

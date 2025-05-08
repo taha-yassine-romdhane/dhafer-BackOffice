@@ -12,9 +12,6 @@ interface Size {
 
 interface Stock {
   id: number;
-  inStockJammel: boolean;
-  inStockTunis: boolean;
-  inStockSousse: boolean;
   inStockOnline: boolean;
   size: Size;
   sizeId: number;
@@ -73,31 +70,17 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
     }, 3000);
   }, []);
 
-  // Toggle stock status locally for a specific location
-  const toggleStockStatus = (stockId: number, location: 'Jammel' | 'Tunis' | 'Sousse' | 'Online') => {
+  // Toggle stock status locally for online availability
+  const toggleStockStatus = (stockId: number) => {
     const newProduct = JSON.parse(JSON.stringify(localProduct)) as Product;
     
-    // Find and update the stock for the specific location
+    // Find and update the stock for online availability
     for (const variant of newProduct.colorVariants) {
       const stockIndex = variant.stocks.findIndex(s => s.id === stockId);
       if (stockIndex !== -1) {
-        // Use a type-safe approach with specific property updates based on location
+        // Toggle online stock status
         const stock = variant.stocks[stockIndex];
-        
-        switch(location) {
-          case 'Jammel':
-            stock.inStockJammel = !stock.inStockJammel;
-            break;
-          case 'Tunis':
-            stock.inStockTunis = !stock.inStockTunis;
-            break;
-          case 'Sousse':
-            stock.inStockSousse = !stock.inStockSousse;
-            break;
-          case 'Online':
-            stock.inStockOnline = !stock.inStockOnline;
-            break;
-        }
+        stock.inStockOnline = !stock.inStockOnline;
         
         setLocalProduct(newProduct);
         setHasChanges(true);
@@ -117,9 +100,6 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
       // Collect all stocks that have changed
       const changedStocks: { 
         stockId: number; 
-        inStockJammel?: boolean; 
-        inStockTunis?: boolean; 
-        inStockSousse?: boolean; 
         inStockOnline?: boolean; 
       }[] = [];
       
@@ -130,19 +110,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
             const changes: any = { stockId: localStock.id };
             let hasChanges = false;
             
-            // Check each location for changes
-            if (originalStock.inStockJammel !== localStock.inStockJammel) {
-              changes.inStockJammel = localStock.inStockJammel;
-              hasChanges = true;
-            }
-            if (originalStock.inStockTunis !== localStock.inStockTunis) {
-              changes.inStockTunis = localStock.inStockTunis;
-              hasChanges = true;
-            }
-            if (originalStock.inStockSousse !== localStock.inStockSousse) {
-              changes.inStockSousse = localStock.inStockSousse;
-              hasChanges = true;
-            }
+            // Check for changes in online stock status
             if (originalStock.inStockOnline !== localStock.inStockOnline) {
               changes.inStockOnline = localStock.inStockOnline;
               hasChanges = true;
@@ -299,25 +267,16 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
 
               <div className="p-4">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
+                      <th scope="col" className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Taille
                       </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Jammel
+                      <th scope="col" className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Disponibilité en ligne
                       </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Tunis
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Sousse
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Online
-                      </th>
-                      <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-2">
-                        Dernière Mise à Jour
+                      <th scope="col" className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Dernière mise à jour
                       </th>
                     </tr>
                   </thead>
@@ -331,58 +290,18 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                           </td>
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => toggleStockStatus(stock.id, 'Jammel')}
-                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  stock.inStockJammel
-                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                }`}
-                              >
-                                {stock.inStockJammel ? '✓' : '✗'}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => toggleStockStatus(stock.id, 'Tunis')}
-                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  stock.inStockTunis
-                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                }`}
-                              >
-                                {stock.inStockTunis ? '✓' : '✗'}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => toggleStockStatus(stock.id, 'Sousse')}
-                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  stock.inStockSousse
-                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                }`}
-                              >
-                                {stock.inStockSousse ? '✓' : '✗'}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => toggleStockStatus(stock.id, 'Online')}
-                                className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                                  stock.inStockOnline
-                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                }`}
-                              >
-                                {stock.inStockOnline ? '✓' : '✗'}
-                              </button>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                  type="checkbox" 
+                                  className="sr-only peer" 
+                                  checked={stock.inStockOnline}
+                                  onChange={() => toggleStockStatus(stock.id)}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                <span className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                  {stock.inStockOnline ? 'En stock' : 'Hors stock'}
+                                </span>
+                              </label>
                             </div>
                           </td>
                           <td className="py-2 px-2">

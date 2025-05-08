@@ -316,10 +316,7 @@ export default function AdminDashboard() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Couleur</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taille</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Jammel</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tunis</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sousse</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Online</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière MAJ</th>
                   </tr>
                 </thead>
@@ -354,21 +351,7 @@ export default function AdminDashboard() {
                                 {stock.size?.value || 'N/A'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockJammel ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {stock.inStockJammel ? 'En stock' : 'Rupture'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockTunis ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {stock.inStockTunis ? 'En stock' : 'Rupture'}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                              <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockSousse ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {stock.inStockSousse ? 'En stock' : 'Rupture'}
-                              </span>
-                            </td>
+                          
                             <td className="px-4 py-3 whitespace-nowrap text-center">
                               <span className={`inline-flex items-center justify-center w-20 px-2 py-1 rounded-md text-xs font-medium ${stock.inStockOnline ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {stock.inStockOnline ? 'En stock' : 'Rupture'}
