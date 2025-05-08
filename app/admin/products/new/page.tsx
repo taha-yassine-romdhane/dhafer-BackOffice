@@ -7,7 +7,6 @@ import Dropzone from '@/components/drop-zone';
 import { Stock, ProductImage, Category, Size } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export interface ColorVariantImages {
   id: number;
@@ -293,9 +292,6 @@ export default function NewProductPage() {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner />
-  }
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">

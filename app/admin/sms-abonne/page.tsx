@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2, Send, Search, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { AddSubscriberDialog } from './add-subscriber-dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -32,15 +34,23 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Subscriber {
   id: number;
-  username: string;
-  email: string;
   phoneNumber: string;
-  isSubscribed: boolean;
-  lastOrderDate: string;
-  orderCount: number;
+  name?: string;
+  isActive: boolean;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function SMSAbonnePage() {
@@ -58,22 +68,39 @@ export default function SMSAbonnePage() {
   const [smsSegments, setSmsSegments] = useState(1);
   const [filterOption, setFilterOption] = useState<'all' | 'active' | 'inactive'>('all');
   const [sortOption, setSortOption] = useState<'name' | 'date' | 'orders'>('name');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [subscriberToDelete, setSubscriberToDelete] = useState<number | null>(null);
 
-  // Mock data for demonstration purposes
+  // Function to fetch subscribers that can be called after adding a new one
+  const fetchSubscribers = async () => {
+
+      try {
+        setLoading(true);
+        const response = await fetch('/api/admin/sms/subscribers');
+        if (!response.ok) throw new Error('Failed to fetch subscribers');
+        
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.subscribers)) {
+          setSubscribers(data.subscribers);
+          setFilteredSubscribers(data.subscribers);
+        } else {
+          console.error('Unexpected API response format:', data);
+          setSubscribers([]);
+          setFilteredSubscribers([]);
+        }
+      } catch (error) {
+        console.error('Error fetching subscribers:', error);
+        setSubscribers([]);
+        setFilteredSubscribers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+  // Call fetchSubscribers on initial load
   useEffect(() => {
-    const mockData: Subscriber[] = Array.from({ length: 10 }, (_, i) => ({
-      id: i + 1,
-      username: `User ${i + 1}`,
-      email: `user${i + 1}@example.com`,
-      phoneNumber: `+216 ${Math.floor(10000000 + Math.random() * 90000000)}`,
-      isSubscribed: true, 
-      lastOrderDate: new Date(Date.now() - Math.floor(Math.random() * 10000000000)).toISOString(),
-      orderCount: Math.floor(Math.random() * 10),
-    }));
-
-    setSubscribers(mockData);
-    setFilteredSubscribers(mockData);
-    setLoading(false);
+    fetchSubscribers();
   }, []);
 
   // Handle search and filtering
@@ -82,14 +109,14 @@ export default function SMSAbonnePage() {
     
     // Apply subscription filter
     if (showOnlySubscribed) {
-      filtered = filtered.filter(sub => sub.isSubscribed);
+      filtered = filtered.filter(sub => sub.isActive);
     }
     
     // Apply filter option
     if (filterOption === 'active') {
-      filtered = filtered.filter(sub => sub.isSubscribed);
+      filtered = filtered.filter(sub => sub.isActive);
     } else if (filterOption === 'inactive') {
-      filtered = filtered.filter(sub => !sub.isSubscribed);
+      filtered = filtered.filter(sub => !sub.isActive);
     }
     
     // Apply search query
@@ -97,20 +124,22 @@ export default function SMSAbonnePage() {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         sub => 
-          sub.username.toLowerCase().includes(query) || 
-          sub.email.toLowerCase().includes(query) ||
-          sub.phoneNumber.includes(query)
+          (sub.name?.toLowerCase().includes(query) || false) || 
+          sub.phoneNumber.includes(query) ||
+          (sub.source?.toLowerCase().includes(query) || false)
       );
     }
     
     // Apply sorting
     filtered.sort((a, b) => {
       if (sortOption === 'name') {
-        return a.username.localeCompare(b.username);
+        // Sort by name if available, otherwise by ID
+        return (a.name || '').localeCompare(b.name || '');
       } else if (sortOption === 'date') {
-        return new Date(b.lastOrderDate).getTime() - new Date(a.lastOrderDate).getTime();
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       } else {
-        return b.orderCount - a.orderCount;
+        // For 'orders' we don't have real data, so just sort by date
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       }
     });
     
@@ -149,12 +178,12 @@ export default function SMSAbonnePage() {
 
   const handleSendSMS = async () => {
     if (smsContent.trim() === '') {
-      alert('Please enter SMS content');
+      alert('Veuillez saisir le contenu du SMS');
       return;
     }
     
     if (selectedSubscribers.length === 0) {
-      alert('Please select at least one subscriber');
+      alert('Veuillez sélectionner au moins un abonné');
       return;
     }
     
@@ -162,47 +191,92 @@ export default function SMSAbonnePage() {
     setSmsStatus('idle');
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get selected subscriber phone numbers
+      const selectedPhones = filteredSubscribers
+        .filter(sub => selectedSubscribers.includes(sub.id))
+        .map(sub => sub.phoneNumber);
       
-      // For demo purposes, we'll simulate a successful send
-      setSmsStatus('success');
-      console.log('SMS would be sent to:', selectedSubscribers);
-      console.log('SMS content:', smsContent);
+      if (selectedPhones.length === 0) {
+        throw new Error('No valid phone numbers found');
+      }
       
-      // In a real implementation, you would call your SMS API here
-      // const response = await fetch('/api/admin/send-sms', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     recipients: selectedSubscribers,
-      //     message: smsContent
-      //   })
-      // });
+      // Call the SMS API
+      const response = await fetch('/api/admin/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phones: selectedPhones,
+          message: smsContent
+        })
+      });
       
-      // Reset form after successful send
-      setTimeout(() => {
-        setSmsContent('');
-        setSelectedSubscribers([]);
-        setSelectAll(false);
-        setSmsStatus('idle');
-      }, 3000);
+      const data = await response.json();
       
+      if (data.success) {
+        setSmsStatus('success');
+        toast.success(`SMS envoyé avec succès à ${selectedPhones.length} abonnés`);
+        
+        // Reset form after successful send
+        setTimeout(() => {
+          setSmsContent('');
+          setSelectedSubscribers([]);
+          setSelectAll(false);
+          setSmsStatus('idle');
+        }, 3000);
+      } else {
+        throw new Error(data.error || 'Failed to send SMS');
+      }
     } catch (error) {
       console.error('Error sending SMS:', error);
       setSmsStatus('error');
+      toast.error(`Échec de l'envoi du SMS: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setSending(false);
     }
   };
 
+  const handleDeleteSubscriber = async () => {
+    if (!subscriberToDelete) return;
+    
+    try {
+      const response = await fetch(`/api/admin/sms/subscribers?id=${subscriberToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete subscriber');
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Abonné supprimé avec succès');
+        // Refresh the subscribers list
+        fetchSubscribers();
+      } else {
+        throw new Error(data.error || 'Une erreur est survenue');
+      }
+      
+    } catch (error) {
+      console.error('Error deleting subscriber:', error);
+      toast.error(`Échec de la suppression: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setDeleteDialogOpen(false);
+      setSubscriberToDelete(null);
+    }
+  };
+  
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Date invalide';
+    }
   };
 
   if (loading) {
@@ -212,12 +286,32 @@ export default function SMSAbonnePage() {
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Gestion des SMS Abonnés <span className="text-red-500">Sera Fonctionnel Quand le SMS API sera activé</span></h1>
+        <h1 className="text-2xl font-bold text-gray-900">Gestion des SMS Abonnés</h1>
         <p className="mt-2 text-sm text-gray-600">
           Envoyez des SMS à vos clients abonnés pour les informer des promotions et nouveautés
         </p>
       </div>
-
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cet abonné ? Cette action ne peut pas être annulée.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteSubscriber}>
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* SMS Composer Section */}
         <div className="lg:col-span-1">
@@ -304,6 +398,7 @@ export default function SMSAbonnePage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
+                  <AddSubscriberDialog onSuccess={fetchSubscribers} />
                   <Button variant="outline" size="sm" onClick={() => setFilteredSubscribers(subscribers)}>
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Réinitialiser
@@ -369,11 +464,11 @@ export default function SMSAbonnePage() {
                           />
                         </TableHead>
                         <TableHead>Nom</TableHead>
-                        <TableHead className="hidden md:table-cell">Email</TableHead>
+                        <TableHead className="hidden md:table-cell">Source</TableHead>
                         <TableHead>Téléphone</TableHead>
                         <TableHead className="hidden md:table-cell">Dernière commande</TableHead>
-                        <TableHead className="hidden lg:table-cell">Commandes</TableHead>
                         <TableHead>Statut</TableHead>
+                        <TableHead className="w-10">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -397,22 +492,36 @@ export default function SMSAbonnePage() {
                               <Checkbox 
                                 checked={selectedSubscribers.includes(subscriber.id)}
                                 onCheckedChange={() => toggleSubscriberSelection(subscriber.id)}
-                                aria-label={`Select ${subscriber.username}`}
+                                aria-label={`Select ${subscriber.name || subscriber.phoneNumber}`}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">{subscriber.username}</TableCell>
-                            <TableCell className="hidden md:table-cell">{subscriber.email}</TableCell>
+                            <TableCell className="font-medium">{subscriber.name || 'Non spécifié'}</TableCell>
+                            <TableCell className="hidden md:table-cell">{subscriber.source || 'Site web'}</TableCell>
                             <TableCell>{subscriber.phoneNumber}</TableCell>
-                            <TableCell className="hidden md:table-cell">{formatDate(subscriber.lastOrderDate)}</TableCell>
-                            <TableCell className="hidden lg:table-cell">{subscriber.orderCount}</TableCell>
+                            <TableCell className="hidden md:table-cell">{formatDate(subscriber.createdAt)}</TableCell>
                             <TableCell>
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                subscriber.isSubscribed 
+                                subscriber.isActive 
                                   ? 'bg-green-100 text-green-800' 
                                   : 'bg-gray-100 text-gray-800'
                               }`}>
-                                {subscriber.isSubscribed ? 'Abonné' : 'Non abonné'}
+                                {subscriber.isActive ? 'Abonné' : 'Non abonné'}
                               </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => {
+                                  setSubscriberToDelete(subscriber.id);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))

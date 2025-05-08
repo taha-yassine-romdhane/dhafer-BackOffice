@@ -236,3 +236,31 @@ model CarouselImage {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Model for SMS subscribers
+model SMSSubscriber {
+  id          Int      @id @default(autoincrement())
+  phoneNumber String   @unique // The phone number to send SMS to
+  name        String?  // Optional name for reference
+  isActive    Boolean  @default(true) // Whether subscriber is active
+  source      String?  // Where this subscriber came from (form, order, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Model for stock notifications when products are back in stock
+model StockNotification {
+  id          Int      @id @default(autoincrement())
+  phoneNumber String   // Phone number to notify
+  productId   Int      // ID of the product
+  productName String   // Name of the product for reference
+  size        String   // Size requested
+  color       String   // Color requested
+  isNotified  Boolean  @default(false) // Whether notification has been sent
+  notifiedAt  DateTime? // When the notification was sent
+  createdAt   DateTime @default(now())
+  
+  @@index([phoneNumber])
+  @@index([productId])
+  @@index([isNotified])
+}

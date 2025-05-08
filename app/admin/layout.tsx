@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminAuth } from '@/components/admin-auth';
-import { Home, Package, ShoppingCart, BarChart, LayoutDashboard, User, MessageCircleIcon, ImageIcon, Users, MessageCircleHeart } from 'lucide-react';
+import { Home, Package, ShoppingCart, BarChart, LayoutDashboard, User, MessageCircleIcon, ImageIcon, Users, MessageCircleHeart, Bell } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -23,9 +23,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Clients', href: '/admin/clients', icon: User },
     { name: 'Top Clients', href: '/admin/top-clients', icon: Users },
     { name: 'Contactes', href: '/admin/contacts', icon: MessageCircleIcon },
-    { name: 'Abonnes', href: '/admin/sms-abonne', icon: MessageCircleHeart },
-   
-   
+    { name: 'SMS Abonnes', href: '/admin/sms-abonne', icon: MessageCircleHeart },
+    { name: 'Notifications Stock', href: '/admin/stock-notifications', icon: Bell },
   ];
 
   return (

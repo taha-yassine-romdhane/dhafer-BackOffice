@@ -127,10 +127,14 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory && matchesCategoryGroup;
   });
 
-  // Prepare categories for dropdown
+  // Prepare categories for dropdown based on selected group
+  const filteredCategories = selectedCategoryGroup === 'all' 
+    ? categories 
+    : categories.filter(category => category.group === selectedCategoryGroup);
+    
   const categoryOptions = [
     { id: 'all', name: 'Toutes les catégories' },
-    ...categories
+    ...filteredCategories
   ];
 
   if (loading) {
@@ -235,7 +239,11 @@ export default function ProductsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
             <select
               value={selectedCategoryGroup}
-              onChange={(e) => setSelectedCategoryGroup(e.target.value)}
+              onChange={(e) => {
+                setSelectedCategoryGroup(e.target.value);
+                // Reset category selection when group changes
+                setSelectedCategoryId('all');
+              }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base"
             >
               <option value="all">Tous les groupes</option>
