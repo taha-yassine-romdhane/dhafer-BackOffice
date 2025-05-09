@@ -10,3 +10,5 @@ services:
     network_mode: "host"
     env_file:
       - .env
+    volumes:
+      - /var/www/images:/var/www/images
