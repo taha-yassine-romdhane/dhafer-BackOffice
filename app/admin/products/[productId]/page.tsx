@@ -241,6 +241,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
     });
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -258,9 +259,11 @@ export default function EditProductPage({ params }: { params: { productId: strin
       // Process each color variant
       const colorVariantsWithUrls = await Promise.all(
         formData.colorVariants.map(async (colorVariant) => {
-          let images = colorVariant.existingImages || [];
-
+          // Get existing images that should be kept
+          const existingImages = colorVariant.existingImages || [];
+          
           // Upload new images if any
+          let newUploadedImages = [];
           if (colorVariant.images.length > 0) {
             const imageFormData = new FormData();
             colorVariant.images.forEach((image: File, index) => {
@@ -278,26 +281,19 @@ export default function EditProductPage({ params }: { params: { productId: strin
             }
 
             const { images: uploadedImages } = await uploadResponse.json();
-            images = [...images, ...uploadedImages];
+            newUploadedImages = uploadedImages;
           }
-          // Add before returning the variant
-          console.log('Color Variant being created:', {
-            color: colorVariant.color,
-            images: {
-              create: images.map(img => ({
-                url: img.url,
-                isMain: img.isMain || false,
-                position: img.position
-              }))
-            },
-            
-          });
 
-          // Create the variant with the correct structure
+          // Return the color variant with image information
           return {
+            id: colorVariant.colorVariantId,
             color: colorVariant.color,
+            // Include information about which existing images to keep and which new ones to create
             images: {
-              create: images.map(img => ({
+              // Send IDs of existing images that should be kept
+              existingIds: existingImages.map((img: any) => img.id),
+              // Send new images to be created
+              create: newUploadedImages.map((img: any) => ({
                 url: img.url,
                 isMain: img.isMain || false,
                 position: img.position

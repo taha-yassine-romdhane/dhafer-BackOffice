@@ -19,8 +19,12 @@ interface UpdateStockData {
 }
 
 interface UpdateColorVariant {
+  id?: string;
   color: string;
-  images: UpdateProductImage[];
+  images: {
+    create: UpdateProductImage[];
+    existingIds: string[];
+  };
   stocks?: UpdateStockData[];
 }
 
@@ -141,15 +145,34 @@ export async function PUT(
             });
           }
 
-          // Handle new images if any
-          if (Array.isArray(variantData.images) && variantData.images.length > 0) {
-            const newImages = variantData.images.filter((newImg: UpdateProductImage) => 
-              !existingVariant.images.some((existingImg: ProductImage) => existingImg.url === newImg.url)
-            );
-
-            if (newImages.length > 0) {
+          // Handle images
+          if (variantData.images) {
+            // First, delete images that are not in the existingIds list
+            if (Array.isArray(variantData.images.existingIds)) {
+              // Get all existing image IDs for this variant
+              const existingImageIds = existingVariant.images.map((img: ProductImage) => img.id);
+              
+              // Find IDs to delete (those that exist but are not in the existingIds list)
+              const imageIdsToDelete = existingImageIds.filter(
+                (id) => !variantData.images.existingIds.some(existingId => existingId === id as any)
+              );
+              
+              // Delete images that are not in the existingIds list
+              if (imageIdsToDelete.length > 0) {
+                await prisma.productImage.deleteMany({
+                  where: {
+                    id: {
+                      in: imageIdsToDelete
+                    }
+                  }
+                });
+              }
+            }
+            
+            // Add new images if any
+            if (Array.isArray(variantData.images.create) && variantData.images.create.length > 0) {
               await prisma.productImage.createMany({
-                data: newImages.map((image: UpdateProductImage) => ({
+                data: variantData.images.create.map((image: UpdateProductImage) => ({
                   url: image.url,
                   isMain: image.isMain || false,
                   position: image.position,

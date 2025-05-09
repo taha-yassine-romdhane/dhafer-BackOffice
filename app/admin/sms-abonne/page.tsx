@@ -107,18 +107,6 @@ export default function SMSAbonnePage() {
   useEffect(() => {
     let filtered = [...subscribers];
     
-    // Apply subscription filter
-    if (showOnlySubscribed) {
-      filtered = filtered.filter(sub => sub.isActive);
-    }
-    
-    // Apply filter option
-    if (filterOption === 'active') {
-      filtered = filtered.filter(sub => sub.isActive);
-    } else if (filterOption === 'inactive') {
-      filtered = filtered.filter(sub => !sub.isActive);
-    }
-    
     // Apply search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -399,7 +387,11 @@ export default function SMSAbonnePage() {
                 </div>
                 <div className="flex gap-2">
                   <AddSubscriberDialog onSuccess={fetchSubscribers} />
-                  <Button variant="outline" size="sm" onClick={() => setFilteredSubscribers(subscribers)}>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setSearchQuery('');
+                    setSortOption('name');
+                    setFilteredSubscribers(subscribers);
+                  }}>
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Réinitialiser
                   </Button>
@@ -421,8 +413,6 @@ export default function SMSAbonnePage() {
                     />
                   </div>
                   <div className="flex gap-2">
-             
-                    
                     <Select 
                       value={sortOption} 
                       onValueChange={(value) => setSortOption(value as 'name' | 'date' | 'orders')}
@@ -454,7 +444,7 @@ export default function SMSAbonnePage() {
                         <TableHead>Nom</TableHead>
                         <TableHead className="hidden md:table-cell">Source</TableHead>
                         <TableHead>Téléphone</TableHead>
-                        <TableHead className="hidden md:table-cell">Dernière commande</TableHead>
+                        <TableHead className="hidden md:table-cell">Date d'inscription</TableHead>
               
                         <TableHead className="w-10">Actions</TableHead>
                       </TableRow>
@@ -486,7 +476,7 @@ export default function SMSAbonnePage() {
                             <TableCell className="font-medium">{subscriber.name || 'Non spécifié'}</TableCell>
                             <TableCell className="hidden md:table-cell">{subscriber.source || 'Site web'}</TableCell>
                             <TableCell>{subscriber.phoneNumber}</TableCell>
-                            <TableCell className="hidden md:table-cell">{formatDate(subscriber.createdAt)}</TableCell>
+                            <TableCell className="hidden md:table-cell">{new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(subscriber.createdAt))}</TableCell>
                             <TableCell>
                               <Button 
                                 variant="ghost" 
