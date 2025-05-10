@@ -144,8 +144,10 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
       setHasChanges(false);
       onUpdate(); // Refresh parent data
       
-      // Redirect to stock page
-      router.push('/admin/stock');
+      // Redirect to stock page with a small delay to ensure the success message is shown
+      setTimeout(() => {
+        window.location.href = 'https://admin.daralkoftanalassil.com/admin/stock';
+      }, 1000);
     } catch (err) {
       showMessage(err instanceof Error ? err.message : 'Error updating stocks', true);
     } finally {
