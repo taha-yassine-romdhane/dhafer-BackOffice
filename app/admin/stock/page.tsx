@@ -1,11 +1,12 @@
 // app/admin/stock/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { ProductStockDetail } from '@/components/ProductStockDetail';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/button';
 
 // Define local interfaces for the stock management page
 interface StockItem {
@@ -43,6 +44,10 @@ export default function StockManagementPage() {
     type: 'success' | 'error' | null;
     text: string | null;
   }>({ type: null, text: null });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchStocks();
@@ -98,6 +103,24 @@ export default function StockManagementPage() {
     return { inStockCount, outOfStockCount, totalLocations };
   };
 
+  // Calculate filtered products and pagination data
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => 
+      product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+  }, [filteredProducts, itemsPerPage]);
+
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(
+      (currentPage - 1) * itemsPerPage, 
+      currentPage * itemsPerPage
+    );
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
   if (loading) {
     return <LoadingSpinner />
   }
@@ -110,12 +133,30 @@ export default function StockManagementPage() {
         {/* Search and Navigation */}
         <div className="flex items-center gap-4">
           {!selectedProduct && (
-            <Input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <>
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset to first page on search
+                }}
+              />
+              <select 
+                className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1); // Reset to first page when changing items per page
+                }}
+              >
+                <option value="5">5 par page</option>
+                <option value="10">10 par page</option>
+                <option value="20">20 par page</option>
+                <option value="50">50 par page</option>
+              </select>
+            </>
           )}
         </div>
       </div>
@@ -128,11 +169,7 @@ export default function StockManagementPage() {
         </div>
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center h-[50vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      ) : selectedProduct ? (
+      {selectedProduct ? (
         <ProductStockDetail
           product={selectedProduct as any}
           onUpdate={fetchStocks}
@@ -162,11 +199,7 @@ export default function StockManagementPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products
-                  .filter(product => 
-                    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map(product => {
+                {paginatedProducts.map(product => {
                     const stockSummary = calculateStockSummary(product);
                     const lastUpdated = product.colorVariants
                       .flatMap(v => v.stocks)
@@ -243,6 +276,35 @@ export default function StockManagementPage() {
                   })}
               </tbody>
             </table>
+          </div>
+          
+          {/* Pagination Controls */}
+          <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div className="flex-1 flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Affichage de <span className="font-medium">{filteredProducts.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> à <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredProducts.length)}</span> sur <span className="font-medium">{filteredProducts.length}</span> produits
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  Précédent
+                </Button>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  variant="outline"
+                  size="sm"
+                >
+                  Suivant
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

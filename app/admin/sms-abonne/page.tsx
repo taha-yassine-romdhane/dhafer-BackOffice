@@ -422,8 +422,7 @@ export default function SMSAbonnePage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="name">Nom</SelectItem>
-                        <SelectItem value="date">Date de commande</SelectItem>
-                        <SelectItem value="orders">Nb. commandes</SelectItem>
+                        <SelectItem value="date">Date d'inscription</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
