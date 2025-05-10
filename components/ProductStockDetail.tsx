@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 interface Size {
   id: number;
@@ -52,6 +53,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const router = useRouter();
 
   // Show message helper
   const showMessage = useCallback((message: string, isError: boolean) => {
@@ -141,6 +143,9 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
       showMessage(`Stocks updated successfully at ${format(new Date(), 'HH:mm:ss')}`, false);
       setHasChanges(false);
       onUpdate(); // Refresh parent data
+      
+      // Redirect to stock page
+      router.push('/admin/stock');
     } catch (err) {
       showMessage(err instanceof Error ? err.message : 'Error updating stocks', true);
     } finally {
