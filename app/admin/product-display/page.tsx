@@ -7,12 +7,11 @@ import Image from 'next/image';
 import { Product } from '@/lib/types';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-type DisplayType = 'home' | 'promo' | 'topSales';
+type DisplayType = 'home' | 'topSales';
 
 type PendingChanges = {
   [key: number]: {
     showInHome?: boolean;
-    showInPromo?: boolean;
     showInTopSales?: boolean;
     priority?: number;
   };
@@ -55,7 +54,6 @@ export default function ProductDisplayManager() {
     productId: number,
     updates: {
       showInHome?: boolean;
-      showInPromo?: boolean;
       showInTopSales?: boolean;
       priority?: number;
     }
@@ -153,7 +151,7 @@ export default function ProductDisplayManager() {
           </div>
   
           <nav className="flex space-x-2 bg-white p-2 rounded-lg shadow-sm">
-            {(['home', 'promo', 'topSales'] as const).map((tab) => (
+            {(['home', 'topSales'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
