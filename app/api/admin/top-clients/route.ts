@@ -16,6 +16,14 @@ export async function GET() {
       },
     });
 
+    // Debug issue with order counts
+    for (const user of users) {
+      if (user.username === 'user') {
+        console.log(`User '${user.username}' has ${user.orders.length} orders in the database:`);
+        console.log(user.orders.map(o => ({ id: o.id, status: o.status, createdAt: o.createdAt })));
+      }
+    }
+
     // Calculate metrics for each user
     const topClients = users.map(user => {
       // Calculate total spent
@@ -26,6 +34,8 @@ export async function GET() {
         ? user.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
         : null;
 
+      // POTENTIAL ISSUE: The order count may be including soft-deleted orders or there might be duplicates
+      // being counted. The orderCount should match what's actually in the database.
       return {
         id: user.id,
         username: user.username,
