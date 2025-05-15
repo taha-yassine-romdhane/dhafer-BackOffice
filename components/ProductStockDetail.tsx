@@ -267,7 +267,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
                     />
                   )}
                   <div>
-                    <h4 className="font-medium">{variant.color}</h4>
+                    <h4 className="font-medium p-2">{variant.color}</h4>
                   </div>
                 </div>
               </div>

@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import {
   Table,
@@ -51,6 +52,7 @@ interface StockNotification {
   isNotified: boolean;
   notifiedAt: string | null;
   createdAt: string;
+  currentStockStatus?: string;
 }
 
 export default function StockNotificationsPage() {
@@ -75,26 +77,63 @@ export default function StockNotificationsPage() {
       setLoading(true);
       const response = await fetch('/api/admin/stock-notifications');
       if (!response.ok) throw new Error('Failed to fetch notifications');
-      
+
       const data = await response.json();
-      
+
       if (data.success && Array.isArray(data.notifications)) {
-        setNotifications(data.notifications);
-        setFilteredNotifications(data.notifications);
+        // Fetch current stock status for each product
+          const notificationsWithStatus = await Promise.all(
+          data.notifications.map(async (notification: StockNotification) => {
+            try {
+              console.log(`Fetching stock status for product ${notification.productId}, size ${notification.size}, color ${notification.color}`);
+              
+              // Use the dedicated stock-status API endpoint
+              const stockStatusUrl = `/api/admin/stock-status?productId=${notification.productId}&size=${encodeURIComponent(notification.size)}&color=${encodeURIComponent(notification.color)}`;
+              const stockResponse = await fetch(stockStatusUrl);
+              
+              if (stockResponse.ok) {
+                const stockData = await stockResponse.json();
+                console.log('Stock status response:', stockData);
+                
+                if (stockData.success && stockData.stockStatus) {
+                  // Get the stock status directly from the response
+                  const isAvailable = stockData.stockStatus.inStockOnline === true;
+                  
+                  return {
+                    ...notification,
+                    currentStockStatus: isAvailable ? 'Disponible' : 'Indisponible'
+                  };
+                }
+              }
+              
+              // Default to Indisponible if we can't get the stock status
+              return {
+                ...notification,
+                currentStockStatus: 'Indisponible'
+              };
+            } catch (error) {
+              console.error(`Error fetching stock for product ${notification.productId}:`, error);
+              return {
+                ...notification,
+                currentStockStatus: 'Indisponible'
+              };
+            }
+          })
+        );
+        
+        setNotifications(notificationsWithStatus);
+        setFilteredNotifications(notificationsWithStatus);
       } else {
-        console.error('Unexpected API response format:', data);
-        setNotifications([]);
-        setFilteredNotifications([]);
+        throw new Error(data.error || 'Failed to fetch notifications');
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      setNotifications([]);
-      setFilteredNotifications([]);
+      toast.error(`Échec du chargement: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Call fetchNotifications on initial load
   useEffect(() => {
     fetchNotifications();
@@ -103,26 +142,26 @@ export default function StockNotificationsPage() {
   // Handle search and filtering
   useEffect(() => {
     let filtered = [...notifications];
-    
+
     // Apply filter option
     if (filterOption === 'pending') {
       filtered = filtered.filter(notif => !notif.isNotified);
     } else if (filterOption === 'sent') {
       filtered = filtered.filter(notif => notif.isNotified);
     }
-    
+
     // Apply search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        notif => 
+        notif =>
           notif.phoneNumber.includes(query) ||
           notif.productName.toLowerCase().includes(query) ||
           notif.size.toLowerCase().includes(query) ||
           notif.color.toLowerCase().includes(query)
       );
     }
-    
+
     // Apply sorting
     filtered.sort((a, b) => {
       if (sortOption === 'date') {
@@ -131,15 +170,15 @@ export default function StockNotificationsPage() {
         return a.productName.localeCompare(b.productName);
       }
     });
-    
+
     setFilteredNotifications(filtered);
   }, [notifications, searchQuery, filterOption, sortOption]);
-  
+
   // Calculate SMS character count and segments
   useEffect(() => {
     const count = smsContent.length;
     setSmsCharCount(count);
-    
+
     // SMS segments calculation
     if (count <= 160) {
       setSmsSegments(1);
@@ -158,8 +197,8 @@ Bonne nouvelle! Le produit "${selectedNotification.productName}" en taille ${sel
 Visitez notre site pour passer votre commande.
 
 Cordialement,
-Dar Koftan`;
-      
+Dar Al Koftan Al Assil`;
+
       setSmsContent(template);
     } else {
       setSmsContent('');
@@ -175,21 +214,21 @@ Dar Koftan`;
       toast.error('Veuillez sélectionner une notification');
       return;
     }
-    
+
     if (!smsContent.trim()) {
       toast.error('Veuillez entrer un message SMS');
       return;
     }
-    
+
     // Only send notifications that haven't been sent yet
     if (selectedNotification.isNotified) {
       toast.error('Cette notification a déjà été envoyée');
       return;
     }
-    
+
     setSending(true);
     setNotificationStatus('idle');
-    
+
     try {
       // First, mark the notification as sent
       const markResponse = await fetch('/api/admin/stock-notifications', {
@@ -199,13 +238,13 @@ Dar Koftan`;
           ids: [selectedNotification.id]
         })
       });
-      
+
       if (!markResponse.ok) throw new Error('Failed to mark notifications as sent');
-      
+
       const markData = await markResponse.json();
-      
+
       if (!markData.success) throw new Error(markData.error || 'Failed to update notification status');
-      
+
       // Then, send SMS notification to the customer
       // Ensure phone number is properly formatted
       let phone = selectedNotification.phoneNumber.replace(/\D/g, '');
@@ -213,9 +252,9 @@ Dar Koftan`;
       if (phone.startsWith('216') && phone.length > 8) {
         phone = phone.substring(3);
       }
-      
+
       const selectedPhones = [phone];
-      
+
       const smsResponse = await fetch('/api/admin/sms/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -224,13 +263,13 @@ Dar Koftan`;
           message: smsContent
         })
       });
-      
+
       const smsData = await smsResponse.json();
-      
+
       if (smsData.success) {
         setNotificationStatus('success');
         toast.success(`Notification envoyée avec succès au client`);
-        
+
         // Refresh the list of notifications
         fetchNotifications();
       } else {
@@ -249,16 +288,16 @@ Dar Koftan`;
 
   const handleDeleteNotification = async () => {
     if (!notificationToDelete) return;
-    
+
     try {
       const response = await fetch(`/api/admin/stock-notifications?id=${notificationToDelete}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) throw new Error('Failed to delete notification');
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         toast.success('Notification supprimée avec succès');
         // Refresh the notifications list
@@ -266,7 +305,7 @@ Dar Koftan`;
       } else {
         throw new Error(data.error || 'Une erreur est survenue');
       }
-      
+
     } catch (error) {
       console.error('Error deleting notification:', error);
       toast.error(`Échec de la suppression: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
@@ -275,7 +314,7 @@ Dar Koftan`;
       setNotificationToDelete(null);
     }
   };
-  
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
@@ -286,7 +325,7 @@ Dar Koftan`;
       const year = date.getFullYear();
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
-      
+
       return `${day}/${month}/${year} ${hours}:${minutes}`;
     } catch (error) {
       console.error('Error formatting date:', error);
@@ -329,7 +368,7 @@ Dar Koftan`;
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* SMS Composer */}
         <div className="md:col-span-1">
@@ -360,7 +399,7 @@ Dar Koftan`;
                     </span>
                   </div>
                   <div className="mt-4">
-                    <Button 
+                    <Button
                       onClick={handleSendNotifications}
                       disabled={sending || !selectedNotification || !smsContent.trim()}
                       className="w-full"
@@ -391,7 +430,7 @@ Dar Koftan`;
                     </div>
                   )}
                 </div>
-                
+
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-sm font-medium text-gray-700 mb-1">Conseils pour les SMS:</h3>
                   <ul className="text-xs text-gray-600 space-y-1 list-disc pl-4">
@@ -405,7 +444,7 @@ Dar Koftan`;
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Notifications Table */}
         <div className="md:col-span-2">
           <Card>
@@ -416,8 +455,8 @@ Dar Koftan`;
                   {filteredNotifications.length} notification(s) trouvée(s)
                 </CardDescription>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={() => fetchNotifications()}
                 variant="outline"
                 size="sm"
@@ -450,7 +489,7 @@ Dar Koftan`;
                       </button>
                     )}
                   </div>
-                  
+
                   {/* Status Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
@@ -468,7 +507,7 @@ Dar Koftan`;
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {/* Sort Option */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Trier par</label>
@@ -486,7 +525,7 @@ Dar Koftan`;
                     </Select>
                   </div>
                 </div>
-                
+
                 {/* Notifications Table */}
                 <div className="border rounded-md">
                   <Table>
@@ -499,20 +538,21 @@ Dar Koftan`;
                         <TableHead className="w-[130px]">Téléphone</TableHead>
                         <TableHead className="w-[140px] text-center">Date de demande</TableHead>
                         <TableHead className="w-[120px] text-center">Statut</TableHead>
+                        <TableHead className="w-[120px] text-center">Stock Actuel</TableHead>
                         <TableHead className="w-[80px] text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {loading ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8">
+                          <TableCell colSpan={9} className="text-center py-8">
                             <LoadingSpinner />
                             <p className="mt-2 text-sm text-gray-500">Chargement des notifications...</p>
                           </TableCell>
                         </TableRow>
                       ) : filteredNotifications.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8">
+                          <TableCell colSpan={9} className="text-center py-8">
                             <p className="text-sm text-gray-500">Aucune notification trouvée</p>
                           </TableCell>
                         </TableRow>
@@ -520,7 +560,7 @@ Dar Koftan`;
                         filteredNotifications.map((notification) => (
                           <TableRow key={notification.id} className={notification.isNotified ? 'bg-gray-50' : ''}>
                             <TableCell>
-                              <Button 
+                              <Button
                                 size="sm"
                                 variant={selectedNotification?.id === notification.id ? "default" : "outline"}
                                 onClick={() => selectNotification(notification)}
@@ -537,25 +577,35 @@ Dar Koftan`;
                             <TableCell className="text-center whitespace-nowrap">{formatDate(notification.createdAt)}</TableCell>
                             <TableCell className="text-center">
                               {notification.isNotified ? (
-                                <div className="flex flex-col items-center gap-1">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <CheckCircle className="mr-1 h-3 w-3" />
-                                    Notifié
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {formatDate(notification.notifiedAt)}
-                                  </span>
-                                </div>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  Notifié
+                                  {notification.notifiedAt && (
+                                    <span className="ml-1 text-xs opacity-70">
+                                      {formatDate(notification.notifiedAt)}
+                                    </span>
+                                  )}
+                                </Badge>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                                   En attente
-                                </span>
+                                </Badge>
                               )}
                             </TableCell>
+                            <TableCell className="text-center">
+                              <Badge 
+                                variant="outline" 
+                                className={notification.currentStockStatus === 'Disponible' 
+                                  ? 'bg-green-50 text-green-700 border-green-200' 
+                                  : 'bg-red-50 text-red-700 border-red-200'
+                                }
+                              >
+                                {notification.currentStockStatus === 'Disponible' ? 'En Stock' : 'Hors Stock'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => {
                                   setNotificationToDelete(notification.id);
