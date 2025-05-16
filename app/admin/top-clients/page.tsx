@@ -253,7 +253,9 @@ export default function TopClientsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {new Date(client.lastOrderDate).toLocaleDateString()}
+                        {client.lastOrderDate && client.orderCount > 0 
+                          ? new Date(client.lastOrderDate).toLocaleDateString()
+                          : '—'}
                       </div>
                     </td>
                   </tr>
