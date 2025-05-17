@@ -242,8 +242,8 @@ export default function StockManagementPage() {
                             />
                           )}
                           <div>
-                            <div className="font-medium text-gray-900 py-4">{product.name}</div>
-                            <div className="text-sm text-gray-500 py-4">ID: {product.id}</div>
+                            <div className="font-medium text-gray-900 px-4">{product.name}</div>
+                            <div className="text-sm text-gray-500 px-4">ID: {product.id}</div>
                           </div>
                         </div>
                       </td>
