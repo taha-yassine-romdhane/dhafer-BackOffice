@@ -28,7 +28,13 @@ export async function GET() {
               select: {
                 id: true,
                 inStockOnline: true,
-                size: true,
+                size: {
+                  select: {
+                    id: true,
+                    value: true,
+                  }
+                },
+                sizeId: true,
                 colorId: true,
                 updatedAt: true,
               },
@@ -45,12 +51,31 @@ export async function GET() {
 
     console.log(`Successfully fetched ${products.length} products`);
 
-    // No need for additional transformation with the new schema
-    const transformedProducts = products;
+    // Transform the data to match the expected format in the frontend
+    const transformedProducts = products.map(product => ({
+      ...product,
+      colorVariants: product.colorVariants.map(variant => ({
+        ...variant,
+        stocks: variant.stocks.map(stock => ({
+          ...stock,
+          // Ensure size is in the correct format
+          size: typeof stock.size === 'object' ? stock.size.value : stock.size,
+          // Ensure sizeId is included
+          sizeId: stock.sizeId,
+        })),
+      })),
+    }));
 
     return NextResponse.json({ 
       success: true, 
       products: transformedProducts 
+    }, {
+      headers: {
+        // Prevent caching of this response
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error) {
     console.error('Error fetching stocks:', error);
@@ -59,7 +84,14 @@ export async function GET() {
         success: false, 
         error: 'Failed to fetch stocks',
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
     );
   }
 }
@@ -72,7 +104,14 @@ export async function PUT(request: Request) {
     if (typeof stockId !== 'number' || typeof status !== 'boolean') {
       return NextResponse.json(
         { success: false, error: 'Invalid input' },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
       );
     }
 
@@ -88,7 +127,13 @@ export async function PUT(request: Request) {
       select: {
         id: true,
         inStockOnline: true,
-        size: true,
+        size: {
+          select: {
+            id: true,
+            value: true,
+          }
+        },
+        sizeId: true,
         colorId: true,
         updatedAt: true,
       },
@@ -96,7 +141,17 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      stock: updatedStock 
+      stock: {
+        ...updatedStock,
+        size: typeof updatedStock.size === 'object' ? updatedStock.size.value : updatedStock.size,
+        sizeId: updatedStock.sizeId,
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error) {
     console.log("error ", error);
@@ -106,7 +161,14 @@ export async function PUT(request: Request) {
         success: false, 
         error: 'Failed to update stock',
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
     );
   }
 }

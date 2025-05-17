@@ -1,7 +1,7 @@
 // components/ProductStockDetail.tsx
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
@@ -42,21 +42,34 @@ interface Product {
 
 interface ProductStockDetailProps {
   product: Product;
-  onUpdate: () => void;
+  onUpdate: () => Promise<boolean>;
   onBack: () => void;
+  onSaveComplete: () => void;
 }
 
-export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDetailProps) {
+export function ProductStockDetail({ product, onUpdate, onBack, onSaveComplete }: ProductStockDetailProps) {
   // Create a local copy of the product data to track changes
-  const [localProduct, setLocalProduct] = useState<Product>(JSON.parse(JSON.stringify(product)));
+  const [localProduct, setLocalProduct] = useState<Product>(() => JSON.parse(JSON.stringify(product)));
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
+  
+  // Use a ref to track if the component is still mounted
+  const isMounted = useRef(true);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Show message helper
   const showMessage = useCallback((message: string, isError: boolean) => {
+    if (!isMounted.current) return;
+    
     if (isError) {
       setError(message);
       setSuccessMessage(null);
@@ -67,6 +80,7 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
 
     // Clear message after 3 seconds
     setTimeout(() => {
+      if (!isMounted.current) return;
       if (isError) setError(null);
       else setSuccessMessage(null);
     }, 3000);
@@ -74,56 +88,91 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
 
   // Toggle stock status locally for online availability
   const toggleStockStatus = (stockId: number) => {
-    const newProduct = JSON.parse(JSON.stringify(localProduct)) as Product;
-    
-    // Find and update the stock for online availability
-    for (const variant of newProduct.colorVariants) {
-      const stockIndex = variant.stocks.findIndex(s => s.id === stockId);
-      if (stockIndex !== -1) {
-        // Toggle online stock status
-        const stock = variant.stocks[stockIndex];
-        stock.inStockOnline = !stock.inStockOnline;
+    // Use functional update to avoid deep cloning the entire state
+    setLocalProduct(prevProduct => {
+      // Create a new product object with spread operator
+      const newProduct = { ...prevProduct };
+      
+      // Create a new colorVariants array
+      newProduct.colorVariants = prevProduct.colorVariants.map(variant => {
+        // Find the stock in this variant
+        const stockIndex = variant.stocks.findIndex(s => s.id === stockId);
         
-        setLocalProduct(newProduct);
-        setHasChanges(true);
-        break;
-      }
-    }
+        // If stock not found in this variant, return the variant unchanged
+        if (stockIndex === -1) return variant;
+        
+        // Create a new variant with a new stocks array
+        return {
+          ...variant,
+          stocks: variant.stocks.map((stock, index) => {
+            // If this is not the stock we're updating, return it unchanged
+            if (index !== stockIndex) return stock;
+            
+            // Create a new stock with toggled inStockOnline
+            return {
+              ...stock,
+              inStockOnline: !stock.inStockOnline
+            };
+          })
+        };
+      });
+      
+      return newProduct;
+    });
+    
+    setHasChanges(true);
   };
 
   // Save all changes
   const saveChanges = async () => {
     if (!hasChanges) return;
 
-    setLoading(true);
-    setError(null);
-
     try {
+      setLoading(true);
+      setError(null);
+
       // Collect all stocks that have changed
       const changedStocks: { 
         stockId: number; 
         inStockOnline?: boolean; 
       }[] = [];
       
-      localProduct.colorVariants.forEach((localVariant, variantIndex) => {
-        localVariant.stocks.forEach((localStock, stockIndex) => {
-          const originalStock = product.colorVariants[variantIndex]?.stocks[stockIndex];
-          if (originalStock) {
-            const changes: any = { stockId: localStock.id };
-            let hasChanges = false;
+      // Compare local product with original product to find changes
+      localProduct.colorVariants.forEach(localVariant => {
+        // Find matching variant in original product
+        const originalVariant = product.colorVariants.find(v => v.id === localVariant.id);
+        
+        if (originalVariant) {
+          localVariant.stocks.forEach(localStock => {
+            // Find matching stock in original variant
+            const originalStock = originalVariant.stocks.find(s => s.id === localStock.id);
             
-            // Check for changes in online stock status
-            if (originalStock.inStockOnline !== localStock.inStockOnline) {
-              changes.inStockOnline = localStock.inStockOnline;
-              hasChanges = true;
+            if (originalStock) {
+              const changes: any = { stockId: localStock.id };
+              let hasStockChanges = false;
+              
+              // Check for changes in online stock status
+              if (originalStock.inStockOnline !== localStock.inStockOnline) {
+                changes.inStockOnline = localStock.inStockOnline;
+                hasStockChanges = true;
+              }
+              
+              if (hasStockChanges) {
+                changedStocks.push(changes);
+              }
             }
-            
-            if (hasChanges) {
-              changedStocks.push(changes);
-            }
-          }
-        });
+          });
+        }
       });
+
+      // If no changes detected, return early
+      if (changedStocks.length === 0) {
+        setLoading(false);
+        showMessage('No changes detected', false);
+        return;
+      }
+
+      console.log('Saving changes:', changedStocks);
 
       // Send batch update request
       const response = await fetch('/api/admin/stock/batch', {
@@ -132,6 +181,8 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ stocks: changedStocks }),
+        // Ensure the request completes
+        cache: 'no-store',
       });
 
       const data = await response.json();
@@ -140,29 +191,39 @@ export function ProductStockDetail({ product, onUpdate, onBack }: ProductStockDe
         throw new Error(data.error || 'Failed to update stocks');
       }
 
+      // Show success message
       showMessage(`Stocks updated successfully at ${format(new Date(), 'HH:mm:ss')}`, false);
       setHasChanges(false);
-      onUpdate(); // Refresh parent data
       
-      // Redirect to stock page with a small delay to ensure the success message is shown
-      setTimeout(() => {
-        window.location.href = 'https://admin.daralkoftanalassil.com/admin/stock';
-      }, 1000);
+      // Call onUpdate to refresh parent data
+      const updateSuccess = await onUpdate();
+      
+      // Always set loading to false before navigation
+      setLoading(false);
+      
+      // Use parent's navigation callback instead of direct navigation
+      if (updateSuccess) {
+        console.log('Update successful, calling onSaveComplete');
+        setTimeout(() => {
+          onSaveComplete();
+        }, 500); // Small delay to show success message
+      }
     } catch (err) {
+      console.error('Error saving changes:', err);
       showMessage(err instanceof Error ? err.message : 'Error updating stocks', true);
-    } finally {
       setLoading(false);
     }
   };
 
   // Discard changes
   const discardChanges = () => {
+    // Reset local product to original product
     setLocalProduct(JSON.parse(JSON.stringify(product)));
     setHasChanges(false);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-product-detail="true">
       {/* Header Section */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">

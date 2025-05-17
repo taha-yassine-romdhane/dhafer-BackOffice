@@ -42,35 +42,57 @@ export async function PUT(request: Request) {
       }
     }
 
-    // Process all updates in a transaction
-    const results = await prisma.$transaction(
-      stocks.map((stock) => {
-        const { stockId, ...updateData } = stock;
-        return prisma.stock.update({
-          where: { id: stockId },
-          data: updateData,
-          select: {
-            id: true,
-            inStockOnline: true,
-            size: true,
-            colorId: true,
-            updatedAt: true,
-          },
-        });
-      })
-    );
+    try {
+      // Process all updates in a transaction
+      const results = await prisma.$transaction(
+        stocks.map((stock) => {
+          const { stockId, ...updateData } = stock;
+          return prisma.stock.update({
+            where: { id: stockId },
+            data: {
+              ...updateData,
+              updatedAt: new Date(), // Explicitly update the timestamp
+            },
+            select: {
+              id: true,
+              inStockOnline: true,
+              size: {
+                select: {
+                  id: true,
+                  value: true,
+                }
+              },
+              colorId: true,
+              updatedAt: true,
+            },
+          });
+        })
+      );
 
-    return NextResponse.json({ 
-      success: true, 
-      updatedStocks: results
-    });
+      console.log('Successfully updated stocks:', results.length);
+      
+      return NextResponse.json({ 
+        success: true, 
+        updatedStocks: results
+      });
+    } catch (dbError) {
+      console.error("Database error in batch update:", dbError);
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database error: ' + (dbError instanceof Error ? dbError.message : 'Unknown error'),
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("Error in batch update:", error);
 
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to update stocks',
+        error: 'Failed to update stocks: ' + (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     );
