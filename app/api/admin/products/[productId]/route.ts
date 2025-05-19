@@ -111,6 +111,12 @@ export async function PUT(
       }
     }
     
+    // 3.5. Get the original product sizes BEFORE updating them
+    const originalProductSizes = await prisma.productSize.findMany({
+      where: { productId }
+    });
+    const originalSizeIds = originalProductSizes.map(ps => ps.sizeId);
+    
     // 4. Update product sizes
     // First, delete all existing product-size relationships
     await prisma.productSize.deleteMany({
@@ -127,6 +133,24 @@ export async function PUT(
           }
         });
       }
+    }
+    
+    // 4.5. Determine which sizes were removed
+    const removedSizeIds = originalSizeIds.filter(sizeId => 
+      !data.sizeIds.includes(sizeId)
+    );
+    
+    // 4.6. Delete stocks for removed sizes across all color variants
+    if (removedSizeIds.length > 0) {
+      console.log('Removing stocks for sizes:', removedSizeIds);
+      await prisma.stock.deleteMany({
+        where: {
+          AND: [
+            { productId },
+            { sizeId: { in: removedSizeIds } }
+          ]
+        }
+      });
     }
 
       // 5. Handle color variants
@@ -227,28 +251,7 @@ export async function PUT(
               }
             }
 
-            // First get the existing product sizes
-            const productSizes = await prisma.productSize.findMany({
-              where: { productId },
-              include: { size: true }
-            });
-            
-            // Get size IDs that are no longer selected
-            const existingSizeIds = productSizes.map(ps => ps.sizeId);
-            const removedSizeIds = existingSizeIds.filter(sizeId => 
-              !data.sizeIds.includes(sizeId)
-            );
-
-            if (removedSizeIds.length > 0) {
-              await prisma.stock.deleteMany({
-                where: {
-                  AND: [
-                    { colorId: existingVariant.id },
-                    { sizeId: { in: removedSizeIds } }
-                  ]
-                }
-              });
-            }
+            // We don't need to check for removed sizes here anymore since we handle it globally
           }
         } else {
           // Create a new color variant
