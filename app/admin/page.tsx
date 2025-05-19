@@ -348,7 +348,7 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-sm font-medium text-blue-700">
-                                {stock.size?.value || 'N/A'}
+                                {typeof stock.size === 'object' ? stock.size?.value : typeof stock.size === 'string' ? stock.size : 'N/A'}
                               </span>
                             </td>
                           
