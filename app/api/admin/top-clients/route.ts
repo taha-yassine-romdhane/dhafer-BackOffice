@@ -17,25 +17,28 @@ export async function GET() {
     });
 
     // Calculate metrics for each user
-    const topClients = users.map(user => {
-      // Calculate total spent
-      const totalSpent = user.orders.reduce((sum, order) => sum + order.totalAmount, 0);
-      
-      // Get the last order date
-      const lastOrderDate = user.orders.length > 0 
-        ? user.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
-        : null;
+    const topClients = users
+      .map(user => {
+        // Calculate total spent
+        const totalSpent = user.orders.reduce((sum, order) => sum + order.totalAmount, 0);
+        
+        // Get the last order date
+        const lastOrderDate = user.orders.length > 0 
+          ? user.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
+          : null;
 
-      return {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        orderCount: user.orders.length,
-        totalSpent,
-        fidelityPoints: user.fidelityPoints,
-        lastOrderDate: lastOrderDate || new Date(0).toISOString(),
-      };
-    });
+        return {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          orderCount: user.orders.length,
+          totalSpent,
+          fidelityPoints: user.fidelityPoints,
+          lastOrderDate,
+        };
+      })
+      // Filter to only include clients with at least one order
+      .filter(client => client.orderCount > 0);
 
     // Sort by order count (descending)
     const sortedClients = topClients.sort((a, b) => b.orderCount - a.orderCount);

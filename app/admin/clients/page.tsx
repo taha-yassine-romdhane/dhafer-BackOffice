@@ -34,12 +34,15 @@ import {
 } from '@/components/ui/dialog'
 
 interface Client {
-  id: number
+  id: number | string
   username: string
   email: string
+  phoneNumber?: string
   createdAt: string
   isSubscribed: boolean
   fidelityPoints: number
+  isGuest?: boolean
+  orderCount?: number
 }
 
 export default function ClientsPage() {
@@ -48,10 +51,11 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [subscriptionFilter, setSubscriptionFilter] = useState<string>('all')
+  const [clientTypeFilter, setClientTypeFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [clientToDelete, setClientToDelete] = useState<number | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<number | string | null>(null)
 
   useEffect(() => {
     fetchClients()
@@ -66,7 +70,8 @@ export default function ClientsPage() {
       const term = searchTerm.toLowerCase()
       result = result.filter(client => 
         client.username.toLowerCase().includes(term) ||
-        client.email.toLowerCase().includes(term)
+        (client.email && client.email.toLowerCase().includes(term)) ||
+        (client.phoneNumber && client.phoneNumber.includes(term))
       )
     }
     
@@ -76,9 +81,15 @@ export default function ClientsPage() {
       result = result.filter(client => client.isSubscribed === isSubscribed)
     }
     
+    // Apply client type filter
+    if (clientTypeFilter !== 'all') {
+      const isGuest = clientTypeFilter === 'guest'
+      result = result.filter(client => (client.isGuest === true) === isGuest)
+    }
+    
     setFilteredClients(result)
     setCurrentPage(1) // Reset to first page when filters change
-  }, [clients, searchTerm, subscriptionFilter])
+  }, [clients, searchTerm, subscriptionFilter, clientTypeFilter])
 
   const fetchClients = async () => {
     try {
@@ -95,13 +106,24 @@ export default function ClientsPage() {
     }
   }
 
-  const openDeleteDialog = (id: number) => {
-    setClientToDelete(id)
-    setDeleteDialogOpen(true)
+  const openDeleteDialog = (id: number | string) => {
+    // Only allow deletion of registered users (with numeric IDs)
+    if (typeof id === 'number') {
+      setClientToDelete(id)
+      setDeleteDialogOpen(true)
+    }
   }
 
   const handleDelete = async () => {
     if (!clientToDelete) return
+    
+    // Ensure clientToDelete is a number (registered user)
+    if (typeof clientToDelete !== 'number') {
+      toast.error('Impossible de supprimer un client invité')
+      setDeleteDialogOpen(false)
+      setClientToDelete(null)
+      return
+    }
 
     try {
       const response = await fetch(`/api/admin/clients/${clientToDelete}`, {
@@ -171,6 +193,7 @@ export default function ClientsPage() {
   const clearFilters = () => {
     setSearchTerm('')
     setSubscriptionFilter('all')
+    setClientTypeFilter('all')
   }
 
   if (loading) {
@@ -195,7 +218,7 @@ export default function ClientsPage() {
                 <Filter className="mr-2 h-5 w-5 text-gray-500" />
                 Filtres
               </h2>
-              {(searchTerm || subscriptionFilter !== 'all') && (
+              {(searchTerm || subscriptionFilter !== 'all' || clientTypeFilter !== 'all') && (
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -208,7 +231,7 @@ export default function ClientsPage() {
               )}
             </div>
             
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {/* Search */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -216,7 +239,7 @@ export default function ClientsPage() {
                 </div>
                 <Input
                   type="text"
-                  placeholder="Rechercher par nom ou email..."
+                  placeholder="Rechercher par nom, email ou téléphone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 py-6 border-[#D4AF37]/20 focus:border-[#D4AF37] focus:ring-[#D4AF37] shadow-sm"
@@ -245,6 +268,20 @@ export default function ClientsPage() {
                   <option value="not-subscribed">Non abonnés</option>
                 </select>
               </div>
+              
+              {/* Client Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type de client</label>
+                <select
+                  value={clientTypeFilter}
+                  onChange={(e) => setClientTypeFilter(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base"
+                >
+                  <option value="all">Tous les types</option>
+                  <option value="registered">Clients inscrits</option>
+                  <option value="guest">Clients invités</option>
+                </select>
+              </div>
             </div>
             
             {/* Results count */}
@@ -255,17 +292,19 @@ export default function ClientsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Utilisateur</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Date D&apos;inscription</TableHead>
-                <TableHead>Points de fidelité</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead>Nom d'utilisateur</TableHead>
+                <TableHead>Email / Téléphone</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date d'inscription</TableHead>
+                <TableHead>Commandes</TableHead>
+                <TableHead>Points de fidélité</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {currentItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-6 text-gray-500">
                     Aucun client trouvé
                   </TableCell>
                 </TableRow>
@@ -273,15 +312,22 @@ export default function ClientsPage() {
                 currentItems.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell>{client.username}</TableCell>
-                  <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.isGuest ? client.phoneNumber : client.email}</TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${client.isGuest ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                      {client.isGuest ? 'Invité' : 'Inscrit'}
+                    </span>
+                  </TableCell>
                   <TableCell>{new Date(client.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{client.orderCount || 0}</TableCell>
                   <TableCell>{client.fidelityPoints}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => openDeleteDialog(client.id)}
+                      onClick={() => openDeleteDialog(typeof client.id === 'number' ? client.id : 0)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      disabled={client.isGuest} // Disable delete button for guest clients
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
