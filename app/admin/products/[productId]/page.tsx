@@ -179,7 +179,7 @@ export default function EditProductPage({ params }: { params: { productId: strin
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newSize }),
+        body: JSON.stringify({ value: newSize }),
       });
 
       if (!response.ok) {
