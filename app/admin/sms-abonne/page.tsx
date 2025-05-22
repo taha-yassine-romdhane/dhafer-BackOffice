@@ -68,6 +68,7 @@ export default function SMSAbonnePage() {
   const [smsSegments, setSmsSegments] = useState(1);
   const [filterOption, setFilterOption] = useState<'all' | 'active' | 'inactive'>('all');
   const [sortOption, setSortOption] = useState<'name' | 'date' | 'orders'>('name');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [subscriberToDelete, setSubscriberToDelete] = useState<number | null>(null);
 
@@ -118,6 +119,11 @@ export default function SMSAbonnePage() {
       );
     }
     
+    // Apply source filter
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter(sub => sub.source === sourceFilter);
+    }
+    
     // Apply sorting
     filtered.sort((a, b) => {
       if (sortOption === 'name') {
@@ -132,7 +138,7 @@ export default function SMSAbonnePage() {
     });
     
     setFilteredSubscribers(filtered);
-  }, [subscribers, searchQuery, showOnlySubscribed, filterOption, sortOption]);
+  }, [subscribers, searchQuery, showOnlySubscribed, filterOption, sortOption, sourceFilter]);
 
   // Handle select all checkbox
   useEffect(() => {
@@ -413,6 +419,23 @@ export default function SMSAbonnePage() {
                     />
                   </div>
                   <div className="flex gap-2">
+                    <Select 
+                      value={sourceFilter}
+                      onValueChange={(value) => setSourceFilter(value)}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes les sources</SelectItem>
+                        {Array.from(new Set(subscribers.map(s => s.source).filter(Boolean)))
+                          .map(source => (
+                            <SelectItem key={source} value={source || ''}>
+                              {source}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                     <Select 
                       value={sortOption} 
                       onValueChange={(value) => setSortOption(value as 'name' | 'date' | 'orders')}
