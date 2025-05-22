@@ -254,21 +254,6 @@ export default function ClientsPage() {
                   </button>
                 )}
               </div>
-              
-              {/* Subscription Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Statut d'abonnement</label>
-                <select
-                  value={subscriptionFilter}
-                  onChange={(e) => setSubscriptionFilter(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base"
-                >
-                  <option value="all">Tous les clients</option>
-                  <option value="subscribed">Abonnés</option>
-                  <option value="not-subscribed">Non abonnés</option>
-                </select>
-              </div>
-              
               {/* Client Type Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type de client</label>

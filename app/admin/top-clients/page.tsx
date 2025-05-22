@@ -3,15 +3,18 @@
 import { useState, useEffect } from 'react';
 import { Search, ArrowUpDown, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { TableHead } from '@/components/ui/table';
 
 interface TopClient {
-  id: number;
+  id: number | string;
   username: string;
   email: string;
+  phoneNumber?: string;
   orderCount: number;
   totalSpent: number;
   fidelityPoints: number;
   lastOrderDate: string;
+  isGuest?: boolean;
 }
 
 export default function TopClientsPage() {
@@ -41,7 +44,8 @@ export default function TopClientsPage() {
       const filtered = clients.filter(
         client =>
           client.username.toLowerCase().includes(lowercasedTerm) ||
-          client.email.toLowerCase().includes(lowercasedTerm)
+          client.email.toLowerCase().includes(lowercasedTerm) ||
+          (client.phoneNumber && client.phoneNumber.includes(lowercasedTerm))
       );
       setFilteredClients(filtered);
     }
@@ -74,10 +78,14 @@ export default function TopClientsPage() {
 
     // Sort the filtered clients
     const sortedClients = [...filteredClients].sort((a, b) => {
-      if (a[key] < b[key]) {
+      // Handle null, undefined, or non-comparable values
+      const valueA = a[key] ?? '';
+      const valueB = b[key] ?? '';
+      
+      if (valueA < valueB) {
         return direction === 'ascending' ? -1 : 1;
       }
-      if (a[key] > b[key]) {
+      if (valueA > valueB) {
         return direction === 'ascending' ? 1 : -1;
       }
       return 0;
@@ -173,8 +181,18 @@ export default function TopClientsPage() {
                   onClick={() => requestSort('email')}
                 >
                   <div className="flex items-center">
-                    Email
+                    Email / Téléphone
                     {getSortIcon('email')}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                  onClick={() => requestSort('isGuest')}
+                >
+                  <div className="flex items-center">
+                    Type
+                    {getSortIcon('isGuest')}
                   </div>
                 </th>
                 <th
@@ -222,14 +240,14 @@ export default function TopClientsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center">
+                  <td colSpan={7} className="px-6 py-4 text-center">
                     <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mx-auto" />
                     <p className="mt-2 text-sm text-gray-500">Chargement des données...</p>
                   </td>
                 </tr>
               ) : filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
                     Aucun client trouvé
                   </td>
                 </tr>
@@ -240,7 +258,12 @@ export default function TopClientsPage() {
                       <div className="text-sm font-medium text-gray-900">{client.username}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">{client.email}</div>
+                      <div className="text-sm text-gray-500">{client.isGuest ? client.phoneNumber : client.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${client.isGuest ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                        {client.isGuest ? 'Invité' : 'Inscrit'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{client.orderCount}</div>

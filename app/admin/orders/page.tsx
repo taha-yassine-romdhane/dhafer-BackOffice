@@ -412,8 +412,8 @@ export default function Orders() {
               setCurrentPage(1); // Reset to first page when changing filter
             }}
             className={`px-3 py-1 rounded-full text-sm ${statusFilter === 'all'
-                ? 'bg-indigo-100 text-indigo-800 font-medium'
-                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              ? 'bg-indigo-100 text-indigo-800 font-medium'
+              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
               }`}
           >
             Tous
@@ -426,8 +426,8 @@ export default function Orders() {
                 setCurrentPage(1); // Reset to first page when changing filter
               }}
               className={`px-3 py-1 rounded-full text-sm ${statusFilter === status
-                  ? 'bg-indigo-100 text-indigo-800 font-medium'
-                  : `${getStatusBadgeClass(status)} hover:opacity-80`
+                ? 'bg-indigo-100 text-indigo-800 font-medium'
+                : `${getStatusBadgeClass(status)} hover:opacity-80`
                 }`}
             >
               {getStatusInFrench(status)}
@@ -498,8 +498,18 @@ export default function Orders() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(order.createdAt).toLocaleDateString()}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      }).replace(/\//g, '/')}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <OrderActions
