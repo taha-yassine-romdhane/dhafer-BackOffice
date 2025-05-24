@@ -2,6 +2,15 @@
 
 import { OrderStatus } from '@prisma/client';
 
+// Map OrderStatus to French translations and badge colors
+const statusTranslations: Record<OrderStatus, { label: string; color: string }> = {
+  [OrderStatus.PENDING]: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+  [OrderStatus.CONFIRMED]: { label: 'Confirmée', color: 'bg-blue-100 text-blue-800' },
+  [OrderStatus.SHIPPED]: { label: 'Expédiée', color: 'bg-indigo-100 text-indigo-800' },
+  [OrderStatus.DELIVERED]: { label: 'Livrée', color: 'bg-green-100 text-green-800' },
+  [OrderStatus.CANCELLED]: { label: 'Annulée', color: 'bg-red-100 text-red-800' },
+};
+
 interface RecentOrder {
   id: number;
   customerName: string;
@@ -12,10 +21,9 @@ interface RecentOrder {
 
 interface RecentOrdersProps {
   recentOrders: RecentOrder[];
-  statusColors: Record<OrderStatus, string>;
 }
 
-export default function RecentOrders({ recentOrders, statusColors }: RecentOrdersProps) {
+export default function RecentOrders({ recentOrders }: RecentOrdersProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-8">
       <div className="p-4 border-b border-gray-200">
@@ -56,13 +64,9 @@ export default function RecentOrders({ recentOrders, statusColors }: RecentOrder
                 </td>
                 <td className="px-4 py-2">
                   <span
-                    className="px-2 py-1 text-xs rounded-full"
-                    style={{
-                      backgroundColor: `${statusColors[order.status]}20`,
-                      color: statusColors[order.status],
-                    }}
+                    className={`px-3 py-1 text-xs font-medium rounded-full ${statusTranslations[order.status].color}`}
                   >
-                    {order.status}
+                    {statusTranslations[order.status].label}
                   </span>
                 </td>
                 <td className="px-4 py-2 text-sm text-gray-500">

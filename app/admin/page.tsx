@@ -232,12 +232,7 @@ export default function AdminDashboard() {
 
       {/* Recent Orders and Order Status Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {analytics?.recentOrders && (
-          <RecentOrders
-            recentOrders={analytics.recentOrders}
-            statusColors={statusColors}
-          />
-        )}
+        {analytics?.recentOrders && <RecentOrders recentOrders={analytics.recentOrders} />}
 
         {analytics?.ordersByStatus && (
           <OrderStatusSummary
