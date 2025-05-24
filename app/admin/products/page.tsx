@@ -157,7 +157,7 @@ export default function ProductsPage() {
               <br />
               1. Si vous modifiez les couleur ou les tailles d'un produit les commandes associées à ce produit ne son pas livrées, ces commandes seront perdues les informations .
               <br />
-              2. La meilliere pratique est de travailler est de extraire les Commandes en excel de  a Jour.
+              2. La meilliere pratique est de travailler est de extraire les Commandes en excel chaque jour.
             </p>
           </div>
         </div>
@@ -198,7 +198,9 @@ export default function ProductsPage() {
           {/* Search */}
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-5 w-5 text-[#D4AF37]" aria-hidden="true" />
+              <div className="flex justify-center w-5">
+                <Search className="h-5 w-5 text-[#D4AF37]" aria-hidden="true" />
+              </div>
             </div>
             <Input
               type="text"
@@ -218,23 +220,7 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {/* Category Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-            <select
-              value={typeof selectedCategoryId === 'number' ? selectedCategoryId.toString() : selectedCategoryId}
-              onChange={(e) => setSelectedCategoryId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base"
-            >
-              {categoryOptions.map(category => (
-                <option key={category.id.toString()} value={category.id.toString()}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Group Filter */}
+          {/* Group Filter - Moved to be first */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Groupe</label>
             <select
@@ -250,6 +236,23 @@ export default function ProductsPage() {
               <option value="FEMME">Femme</option>
               <option value="ENFANT">Enfant</option>
               <option value="ACCESSOIRE">Accessoire</option>
+            </select>
+          </div>
+
+          {/* Category Filter - Now disabled until group is selected */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
+            <select
+              value={typeof selectedCategoryId === 'number' ? selectedCategoryId.toString() : selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-[#D4AF37] focus:ring-[#D4AF37] py-2 pl-3 pr-10 text-base ${selectedCategoryGroup === 'all' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              disabled={selectedCategoryGroup === 'all'}
+            >
+              {categoryOptions.map(category => (
+                <option key={category.id.toString()} value={category.id.toString()}>
+                  {category.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>

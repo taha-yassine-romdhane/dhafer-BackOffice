@@ -5,6 +5,21 @@ import { Search, ArrowUpDown, ChevronDown, ChevronUp, Loader2 } from 'lucide-rea
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { TableHead } from '@/components/ui/table';
 
+interface Order {
+  id: number;
+  status: 'PENDING' | 'CONFIRMED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  totalAmount: number;
+  createdAt: string;
+}
+
+interface OrdersByStatus {
+  PENDING?: number;
+  CONFIRMED?: number;
+  SHIPPED?: number;
+  DELIVERED?: number;
+  CANCELLED?: number;
+}
+
 interface TopClient {
   id: number | string;
   username: string;
@@ -15,6 +30,8 @@ interface TopClient {
   fidelityPoints: number;
   lastOrderDate: string;
   isGuest?: boolean;
+  ordersByStatus?: OrdersByStatus;
+  recentOrders?: Order[];
 }
 
 export default function TopClientsPage() {
@@ -30,10 +47,12 @@ export default function TopClientsPage() {
     key: 'orderCount',
     direction: 'descending',
   });
+  
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
   useEffect(() => {
     fetchTopClients();
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     // Filter clients based on search term
@@ -54,7 +73,11 @@ export default function TopClientsPage() {
   const fetchTopClients = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/top-clients');
+      const url = statusFilter 
+        ? `/api/admin/top-clients?status=${statusFilter}` 
+        : '/api/admin/top-clients';
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch top clients');
       }
@@ -145,7 +168,7 @@ export default function TopClientsPage() {
 
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center">
+          <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
@@ -157,6 +180,21 @@ export default function TopClientsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+            </div>
+            
+            <div className="flex-shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="PENDING">En attente</option>
+                <option value="CONFIRMED">Confirmées</option>
+                <option value="SHIPPED">Expédiées</option>
+                <option value="DELIVERED">Livrées</option>
+                <option value="CANCELLED">Annulées</option>
+              </select>
             </div>
           </div>
         </div>
@@ -267,6 +305,35 @@ export default function TopClientsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{client.orderCount}</div>
+                      {client.ordersByStatus && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {client.ordersByStatus.PENDING && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {client.ordersByStatus.PENDING} en attente
+                            </span>
+                          )}
+                          {client.ordersByStatus.CONFIRMED && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                              {client.ordersByStatus.CONFIRMED} confirmées
+                            </span>
+                          )}
+                          {client.ordersByStatus.SHIPPED && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              {client.ordersByStatus.SHIPPED} expédiées
+                            </span>
+                          )}
+                          {client.ordersByStatus.DELIVERED && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              {client.ordersByStatus.DELIVERED} livrées
+                            </span>
+                          )}
+                          {client.ordersByStatus.CANCELLED && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                              {client.ordersByStatus.CANCELLED} annulées
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{client.totalSpent.toFixed(2)} TND</div>
@@ -280,6 +347,30 @@ export default function TopClientsPage() {
                           ? new Date(client.lastOrderDate).toLocaleDateString()
                           : '—'}
                       </div>
+                      {client.recentOrders && client.recentOrders.length > 0 && (
+                        <div className="mt-1">
+                          {client.recentOrders.map((order) => (
+                            <div key={order.id} className="mt-1 flex items-center">
+                              <span className="mr-1 text-xs text-gray-500">
+                                {new Date(order.createdAt).toLocaleDateString()}:
+                              </span>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                ${order.status === 'PENDING' ? 'bg-blue-100 text-blue-800' : ''}
+                                ${order.status === 'CONFIRMED' ? 'bg-indigo-100 text-indigo-800' : ''}
+                                ${order.status === 'SHIPPED' ? 'bg-purple-100 text-purple-800' : ''}
+                                ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : ''}
+                                ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' : ''}
+                              `}>
+                                {order.status === 'PENDING' && 'En attente'}
+                                {order.status === 'CONFIRMED' && 'Confirmée'}
+                                {order.status === 'SHIPPED' && 'Expédiée'}
+                                {order.status === 'DELIVERED' && 'Livrée'}
+                                {order.status === 'CANCELLED' && 'Annulée'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

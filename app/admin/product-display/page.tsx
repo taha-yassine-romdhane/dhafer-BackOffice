@@ -7,7 +7,6 @@ import Image from 'next/image';
 import { Product } from '@/lib/types';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-type DisplayType = 'home' | 'topSales';
 
 type PendingChanges = {
   [key: number]: {
@@ -19,11 +18,12 @@ type PendingChanges = {
 
 export default function ProductDisplayManager() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [homePageProducts, setHomePageProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<DisplayType>('home');
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>({});
   const [saving, setSaving] = useState(false);
+  const [showOnlyHomeProducts, setShowOnlyHomeProducts] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -39,7 +39,10 @@ export default function ProductDisplayManager() {
       }
       const data = await response.json();
       if (data.success && Array.isArray(data.products)) {
-        setProducts(data.products);
+        const allProducts = data.products;
+        setProducts(allProducts);
+        // Filter products that are shown on the home page
+        setHomePageProducts(allProducts.filter((product: Product) => product.showInHome));
       } else {
         throw new Error(data.error || 'Failed to fetch products');
       }
@@ -136,42 +139,53 @@ export default function ProductDisplayManager() {
       <div className="max-w-7xl mx-auto">
         <header className="mb-8">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Gestion de l'affichage des produits</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Gestion des produits de la page d'accueil</h1>
+            
             {Object.keys(pendingChanges).length > 0 && (
               <button
                 onClick={saveAllChanges}
                 disabled={saving}
-                className={`px-6 py-3 rounded-lg font-medium text-white 
-                  ${saving ? 'bg-blue-400' : 'bg-blue-500 hover:bg-blue-600'} 
-                  transition-all duration-200 shadow-md`}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
               >
-                {saving ? 'Saving...' : `Save Changes (${Object.keys(pendingChanges).length})`}
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Enregistrement...
+                  </>
+                ) : (
+                  'Enregistrer les modifications'
+                )}
               </button>
             )}
           </div>
-  
-          <nav className="flex space-x-2 bg-white p-2 rounded-lg shadow-sm">
-            {(['home', 'topSales'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                  activeTab === tab
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {tab === 'topSales' ? 'Top Ventes' : tab.charAt(0).toUpperCase() + tab.slice(1)} Page
-              </button>
-            ))}
-          </nav>
+          
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center">
+              <label htmlFor="showHomeOnly" className="flex items-center cursor-pointer">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    id="showHomeOnly" 
+                    className="sr-only" 
+                    checked={showOnlyHomeProducts}
+                    onChange={() => setShowOnlyHomeProducts(!showOnlyHomeProducts)}
+                  />
+                  <div className={`block w-14 h-8 rounded-full ${showOnlyHomeProducts ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                  <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition ${showOnlyHomeProducts ? 'transform translate-x-6' : ''}`}></div>
+                </div>
+                <div className="ml-3 text-gray-700 font-medium">
+                  {showOnlyHomeProducts ? 'Afficher uniquement les produits de la page d\'accueil' : 'Afficher tous les produits'}
+                </div>
+              </label>
+            </div>
+          </div>
         </header>
   
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => {
+          {(showOnlyHomeProducts ? homePageProducts : products).map((product) => {
             const mainImage = product.colorVariants[0]?.images.find(img => img.isMain)?.url || 
                             product.colorVariants[0]?.images[0]?.url;
-            const displayKey = `showIn${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}` as keyof Product;
+            const displayKey = 'showInHome' as keyof Product;
             const isShowing = getCurrentValue(product, displayKey) as boolean;
             const currentPriority = getCurrentValue(product, 'priority') as number;
             const hasChanges = pendingChanges[product.id];

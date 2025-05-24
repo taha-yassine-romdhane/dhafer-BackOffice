@@ -1,14 +1,22 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, OrderStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Parse query parameters
+    const url = new URL(request.url);
+    const statusFilter = url.searchParams.get('status') as OrderStatus | null;
+    
+    // Prepare the where clause for filtering by status
+    const statusWhere = statusFilter ? { status: statusFilter } : {};
+    
     // Get all users with their orders
     const users = await prisma.user.findMany({
       include: {
         orders: {
+          where: statusWhere,
           include: {
             items: true,
           },
@@ -20,6 +28,7 @@ export async function GET() {
     const guestOrders = await prisma.order.findMany({
       where: {
         userId: null,
+        ...statusWhere,
       },
       include: {
         items: true,
@@ -46,6 +55,24 @@ export async function GET() {
           ? user.orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0].createdAt 
           : null;
 
+        // Group orders by status
+        const ordersByStatus = user.orders.reduce((acc, order) => {
+          if (!acc[order.status]) acc[order.status] = 0;
+          acc[order.status]++;
+          return acc;
+        }, {} as Record<OrderStatus, number>);
+
+        // Get the most recent orders (up to 5)
+        const recentOrders = user.orders
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5)
+          .map(order => ({
+            id: order.id,
+            status: order.status,
+            totalAmount: order.totalAmount,
+            createdAt: order.createdAt
+          }));
+
         return {
           id: user.id,
           username: user.username,
@@ -55,6 +82,8 @@ export async function GET() {
           fidelityPoints: user.fidelityPoints,
           lastOrderDate,
           isGuest: false,
+          ordersByStatus,
+          recentOrders
         };
       })
       // Filter to only include clients with at least one order
@@ -73,6 +102,24 @@ export async function GET() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )[0].createdAt;
 
+      // Group orders by status
+      const ordersByStatus = orders.reduce((acc, order) => {
+        if (!acc[order.status]) acc[order.status] = 0;
+        acc[order.status]++;
+        return acc;
+      }, {} as Record<OrderStatus, number>);
+
+      // Get the most recent orders (up to 5)
+      const recentOrders = orders
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map(order => ({
+          id: order.id,
+          status: order.status,
+          totalAmount: order.totalAmount,
+          createdAt: order.createdAt
+        }));
+
       return {
         id: `guest-${phoneNumber}`,
         username: orders[0].customerName,
@@ -83,6 +130,8 @@ export async function GET() {
         fidelityPoints,
         lastOrderDate,
         isGuest: true,
+        ordersByStatus,
+        recentOrders
       };
     });
 

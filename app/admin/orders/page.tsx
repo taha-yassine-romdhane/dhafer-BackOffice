@@ -90,6 +90,7 @@ export default function Orders() {
   const [minAmountFilter, setMinAmountFilter] = useState('');
   const [maxAmountFilter, setMaxAmountFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [todayFilter, setTodayFilter] = useState(false);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -264,6 +265,15 @@ export default function Orders() {
     fetchOrders();
   };
 
+  // Function to check if a date is today
+  const isToday = (dateString: string) => {
+    const today = new Date();
+    const date = new Date(dateString);
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+  };
+
   // Apply all filters
   const filteredOrders = orders
     .filter(order => statusFilter === 'all' || order.status === statusFilter)
@@ -271,7 +281,8 @@ export default function Orders() {
     .filter(order => !startDateFilter || new Date(order.createdAt) >= new Date(startDateFilter))
     .filter(order => !endDateFilter || new Date(order.createdAt) <= new Date(`${endDateFilter}T23:59:59`))
     .filter(order => !minAmountFilter || order.totalAmount >= parseFloat(minAmountFilter))
-    .filter(order => !maxAmountFilter || order.totalAmount <= parseFloat(maxAmountFilter));
+    .filter(order => !maxAmountFilter || order.totalAmount <= parseFloat(maxAmountFilter))
+    .filter(order => !todayFilter || isToday(order.createdAt));
 
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -433,6 +444,74 @@ export default function Orders() {
               {getStatusInFrench(status)}
             </button>
           ))}
+        </div>
+
+        {/* Date filters */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => {
+              // Toggle today filter
+              const newTodayFilter = !todayFilter;
+              setTodayFilter(newTodayFilter);
+              
+              // If enabling today filter, clear date filters
+              if (newTodayFilter) {
+                setStartDateFilter('');
+                setEndDateFilter('');
+              }
+              
+              setCurrentPage(1); // Reset to first page
+            }}
+            className={`px-3 py-1 rounded-full text-sm ${todayFilter
+              ? 'bg-green-100 text-green-800 font-medium'
+              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+          >
+            Commandes d'aujourd'hui
+          </button>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600 mr-2">Du:</span>
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => {
+                  setStartDateFilter(e.target.value);
+                  setTodayFilter(false); // Disable today filter when using date range
+                  setCurrentPage(1); // Reset to first page
+                }}
+                className="border border-gray-300 rounded-md p-1 text-sm"
+                disabled={todayFilter}
+              />
+            </div>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600 mr-2">Au:</span>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => {
+                  setEndDateFilter(e.target.value);
+                  setTodayFilter(false); // Disable today filter when using date range
+                  setCurrentPage(1); // Reset to first page
+                }}
+                className="border border-gray-300 rounded-md p-1 text-sm"
+                disabled={todayFilter}
+              />
+            </div>
+            {(startDateFilter || endDateFilter) && (
+              <button
+                onClick={() => {
+                  setStartDateFilter('');
+                  setEndDateFilter('');
+                  setCurrentPage(1); // Reset to first page
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
       {error && (

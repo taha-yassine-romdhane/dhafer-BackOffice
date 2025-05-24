@@ -54,17 +54,18 @@ export default function SizePage() {
     }
 
     try {
-      const url = editingId 
-        ? `/api/admin/sizes/${editingId}`
-        : '/api/admin/sizes';
+      const url = '/api/admin/sizes';
       const method = editingId ? 'PUT' : 'POST';
+      const requestBody = editingId 
+        ? { ...formData, id: editingId }
+        : formData;
 
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) throw new Error(editingId ? 'Failed to update size' : 'Failed to create size');
