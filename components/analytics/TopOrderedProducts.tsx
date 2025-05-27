@@ -14,9 +14,11 @@ interface TopProduct {
   totalRevenue: number;
   imageUrl?: string;
   color?: string;
-  completedOrders: number;
-  pendingOrders: number;
-  cancelledOrders: number;
+  pendingOrders: number;     // PENDING
+  confirmedOrders: number;   // CONFIRMED
+  shippedOrders: number;     // SHIPPED
+  deliveredOrders: number;   // DELIVERED
+  cancelledOrders: number;   // CANCELLED
 }
 
 interface TopOrderedProductsProps {
@@ -157,8 +159,16 @@ export default function TopOrderedProducts({ products }: TopOrderedProductsProps
                         <span className="text-xs text-gray-500">En attente: {product.pendingOrders}</span>
                       </div>
                       <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-indigo-600 mr-2"></div>
+                        <span className="text-xs text-gray-500">Confirmées: {product.confirmedOrders}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
+                        <span className="text-xs text-gray-500">Expédiées: {product.shippedOrders}</span>
+                      </div>
+                      <div className="flex items-center">
                         <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-xs text-gray-500">Livrées: {product.completedOrders}</span>
+                        <span className="text-xs text-gray-500">Livrées: {product.deliveredOrders}</span>
                       </div>
                       <div className="flex items-center">
                         <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>

@@ -24,15 +24,25 @@ export async function GET() {
     console.log(`Total orders fetched: ${orders.length}`);
 
     const totalOrders = orders.length;
+    
+    // Store actual order counts by status for reference
+    const actualOrderCountsByStatus: Record<OrderStatus, number> = {} as Record<OrderStatus, number>;
 
-    // Get orders by status
-    const ordersByStatus = Object.values(OrderStatus).map((status) => ({
-      status,
-      count: orders.filter((order) => order.status === status).length,
-      revenue: orders
-        .filter((order) => order.status === status)
-        .reduce((sum, order) => sum + (order.totalAmount || 0), 0),
-    }));
+    // Get orders by status (actual counts, not duplicated)
+    const ordersByStatus = Object.values(OrderStatus).map((status) => {
+      const ordersWithStatus = orders.filter((order) => order.status === status);
+      const count = ordersWithStatus.length;
+      const revenue = ordersWithStatus.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      
+      // Store the actual count for reference
+      actualOrderCountsByStatus[status] = count;
+      
+      return {
+        status,
+        count,
+        revenue,
+      };
+    });
 
     // Get recent orders (last 5)
     const recentOrders = orders.slice(0, 5).map((order) => ({
@@ -115,6 +125,7 @@ export async function GET() {
     }, {} as Record<OrderStatus, number[]>);
     
     // Calculate order counts by status for each day (last 7 days)
+    // This is for visualization purposes only and doesn't affect the actual order counts
     const orderCountByStatus = Object.values(OrderStatus).reduce((acc, status) => {
       acc[status] = last7Days.map((date) => {
         return orders.filter((order) => {
@@ -272,6 +283,8 @@ export async function GET() {
         labels: allTimeLabels,
         salesByStatus: allTimeOrderCountByStatus
       },
+      // Include actual order counts by status for accurate display
+      actualOrderCountsByStatus,
       globalStock: {
         totalStock: totalStockItems,
         inStockOnline: inStockOnlineItems,

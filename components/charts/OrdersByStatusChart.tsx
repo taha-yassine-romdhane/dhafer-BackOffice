@@ -26,6 +26,8 @@ interface OrdersByStatusChartProps {
     salesByStatus: Record<OrderStatus, number[]>;
     labels: string[];
   };
+  // Add the actual order counts by status
+  actualOrderCountsByStatus?: Record<OrderStatus, number>;
 }
 
 const OrdersByStatusChart: React.FC<OrdersByStatusChartProps> = ({
@@ -36,6 +38,7 @@ const OrdersByStatusChart: React.FC<OrdersByStatusChartProps> = ({
   dayTranslations,
   monthlyData,
   allTimeData,
+  actualOrderCountsByStatus,
 }) => {
   const [timePeriod, setTimePeriod] = useState<'week' | 'month' | 'all'>('week');
   
@@ -65,6 +68,12 @@ const OrdersByStatusChart: React.FC<OrdersByStatusChartProps> = ({
     Object.entries(selectedData.salesByStatus).forEach(([status, data]) => {
       // Use the actual count data directly - no need for approximation
       dataPoint[statusTranslations[status as OrderStatus]] = data[index] || 0;
+      
+      // Also store the actual total count for reference in the tooltip
+      if (actualOrderCountsByStatus && actualOrderCountsByStatus[status as OrderStatus]) {
+        dataPoint[`${statusTranslations[status as OrderStatus]}Total`] = 
+          actualOrderCountsByStatus[status as OrderStatus];
+      }
     });
 
     return dataPoint;
@@ -73,7 +82,8 @@ const OrdersByStatusChart: React.FC<OrdersByStatusChartProps> = ({
   // Custom tooltip to show more detailed information
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const totalOrders = payload.reduce((sum: number, entry: any) => sum + (entry.value || 0), 0);
+      // Calculate daily orders for the chart display
+      const dailyOrders = payload.reduce((sum: number, entry: any) => sum + (entry.value || 0), 0);
       
       // Get the actual date from the label
       const formattedDate = label;
@@ -81,24 +91,31 @@ const OrdersByStatusChart: React.FC<OrdersByStatusChartProps> = ({
       return (
         <div className="bg-white p-4 border border-gray-200 rounded-md shadow-sm">
           <p className="font-semibold text-gray-800 mb-2">{formattedDate}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex justify-between items-center mb-1">
-              <div className="flex items-center">
-                <div 
-                  className="w-3 h-3 rounded-full mr-2" 
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-sm text-gray-700">{entry.name}:</span>
+          {payload.map((entry: any, index: number) => {
+            // Get the total value from the data point
+            const totalKey = `${entry.name}Total`;
+            const totalValue = entry.payload[totalKey];
+              
+            return (
+              <div key={index} className="flex justify-between items-center mb-1">
+                <div className="flex items-center">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-2" 
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-sm text-gray-700">{entry.name}:</span>
+                </div>
+                <span className="text-sm font-medium text-gray-900 ml-4">
+                  {entry.value} commandes {totalValue ? 
+                    `(${totalValue} total)` : ''}
+                </span>
               </div>
-              <span className="text-sm font-medium text-gray-900 ml-4">
-                {entry.value} commandes
-              </span>
-            </div>
-          ))}
+            );
+          })}
           <div className="mt-2 pt-2 border-t border-gray-200">
             <div className="flex justify-between">
-              <span className="text-sm font-medium text-gray-700">Total:</span>
-              <span className="text-sm font-bold text-gray-900">{totalOrders} commandes</span>
+              <span className="text-sm font-medium text-gray-700">Total pour ce jour:</span>
+              <span className="text-sm font-bold text-gray-900">{dailyOrders} commandes</span>
             </div>
           </div>
         </div>

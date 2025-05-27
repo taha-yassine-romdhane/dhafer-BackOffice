@@ -82,6 +82,8 @@ interface Analytics {
     labels: string[];
     salesByStatus: Record<OrderStatus, number[]>;
   };
+  // Add actual order counts by status
+  actualOrderCountsByStatus: Record<OrderStatus, number>;
   globalStock: {
     totalStock: number;
     inStockOnline: number;
@@ -116,9 +118,11 @@ interface TopProduct {
   totalRevenue: number;
   imageUrl?: string;
   color?: string;
-  completedOrders: number;
-  pendingOrders: number;
-  cancelledOrders: number;
+  pendingOrders: number;     // PENDING
+  confirmedOrders: number;   // CONFIRMED
+  shippedOrders: number;     // SHIPPED
+  deliveredOrders: number;   // DELIVERED
+  cancelledOrders: number;   // CANCELLED
 }
 
 interface DataFeatures {
@@ -288,13 +292,20 @@ export default function AdminDashboard() {
           </h3>
           {analytics && (
             <OrdersByStatusChart
-              salesByStatus={analytics.salesByStatus}
+              salesByStatus={analytics.orderCountByStatus}
               labels={analytics.last7DaysLabels}
-              monthlyData={analytics.monthlyData}
-              allTimeData={analytics.allTimeData}
+              monthlyData={{
+                labels: analytics.monthlyData.labels,
+                salesByStatus: analytics.monthlyData.salesByStatus
+              }}
+              allTimeData={{
+                labels: analytics.allTimeData.labels,
+                salesByStatus: analytics.allTimeData.salesByStatus
+              }}
               statusTranslations={statusTranslations}
               dayTranslations={dayTranslations}
               statusColors={statusColors}
+              actualOrderCountsByStatus={analytics.actualOrderCountsByStatus}
             />
           )}
         </div>

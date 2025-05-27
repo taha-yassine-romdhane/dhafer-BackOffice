@@ -179,9 +179,12 @@ async function getTopOrderedProducts() {
     totalRevenue: number;
     imageUrl?: string;
     color?: string;
-    completedOrders: number;
-    pendingOrders: number;
-    cancelledOrders: number;
+    // Update to track all order statuses
+    pendingOrders: number;     // PENDING
+    confirmedOrders: number;   // CONFIRMED
+    shippedOrders: number;     // SHIPPED
+    deliveredOrders: number;   // DELIVERED
+    cancelledOrders: number;   // CANCELLED
   }> = {};
 
   orderItems.forEach(item => {
@@ -213,8 +216,11 @@ async function getTopOrderedProducts() {
         totalRevenue: 0,
         imageUrl,
         color,
-        completedOrders: 0,
+        // Initialize all order status counters
         pendingOrders: 0,
+        confirmedOrders: 0,
+        shippedOrders: 0,
+        deliveredOrders: 0,
         cancelledOrders: 0,
       };
     }
@@ -222,13 +228,25 @@ async function getTopOrderedProducts() {
     productStats[productId].totalQuantity += item.quantity;
     productStats[productId].totalRevenue += item.price * item.quantity;
     
-    // Count by order status
-    if (item.order.status === OrderStatus.DELIVERED) {
-      productStats[productId].completedOrders += item.quantity;
-    } else if (item.order.status === OrderStatus.CANCELLED) {
-      productStats[productId].cancelledOrders += item.quantity;
-    } else {
-      productStats[productId].pendingOrders += item.quantity;
+    // Count by order status - handle all five statuses properly
+    switch (item.order.status) {
+      case OrderStatus.PENDING:
+        productStats[productId].pendingOrders += item.quantity;
+        break;
+      case OrderStatus.CONFIRMED:
+        productStats[productId].confirmedOrders += item.quantity;
+        break;
+      case OrderStatus.SHIPPED:
+        productStats[productId].shippedOrders += item.quantity;
+        break;
+      case OrderStatus.DELIVERED:
+        productStats[productId].deliveredOrders += item.quantity;
+        break;
+      case OrderStatus.CANCELLED:
+        productStats[productId].cancelledOrders += item.quantity;
+        break;
+      default:
+        console.warn(`Unknown order status: ${item.order.status} for product ${productId}`);
     }
   });
 
