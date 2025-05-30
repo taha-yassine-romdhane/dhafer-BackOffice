@@ -308,7 +308,7 @@ export default function TopClientsPage() {
                       {client.ordersByStatus && (
                         <div className="mt-1 flex flex-wrap gap-1">
                           {client.ordersByStatus.PENDING && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
                               {client.ordersByStatus.PENDING} en attente
                             </span>
                           )}
@@ -355,7 +355,7 @@ export default function TopClientsPage() {
                                 {new Date(order.createdAt).toLocaleDateString()}:
                               </span>
                               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
-                                ${order.status === 'PENDING' ? 'bg-blue-100 text-blue-800' : ''}
+                                ${order.status === 'PENDING' ? 'bg-orange-100 text-orange-800' : ''}
                                 ${order.status === 'CONFIRMED' ? 'bg-indigo-100 text-indigo-800' : ''}
                                 ${order.status === 'SHIPPED' ? 'bg-purple-100 text-purple-800' : ''}
                                 ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : ''}

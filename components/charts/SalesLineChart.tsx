@@ -76,6 +76,8 @@ const SalesLineChart: React.FC<SalesLineChartProps> = ({
         <YAxis 
           tick={{ fill: '#6b7280' }}
           tickMargin={10}
+          tickFormatter={(value) => `${value} TND`}
+          width={80}
         />
         <Tooltip 
           contentStyle={{ 
@@ -86,6 +88,7 @@ const SalesLineChart: React.FC<SalesLineChartProps> = ({
           }}
           itemStyle={{ color: '#374151' }}
           labelStyle={{ fontWeight: 'bold', color: '#111827' }}
+          formatter={(value: any, name: any, props: any) => [`${value} TND`, name]}
         />
         <Legend 
           wrapperStyle={{ paddingTop: 10 }}

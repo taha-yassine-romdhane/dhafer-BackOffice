@@ -19,10 +19,11 @@ export async function GET() {
                 url: true,
                 isMain: true,
               },
-              where: {
-                isMain: true,
+              // No where clause to get any image if available
+              orderBy: {
+                isMain: 'desc', // Prioritize main images first
               },
-              take: 1,
+              take: 1, // Still only take one image
             },
             stocks: {
               select: {

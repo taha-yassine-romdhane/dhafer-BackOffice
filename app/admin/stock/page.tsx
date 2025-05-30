@@ -56,6 +56,8 @@ export default function StockManagementPage() {
   const fetchStocks = useCallback(async () => {
     try {
       setLoading(true);
+      // Reset pagination to first page when fetching new data
+      setCurrentPage(1);
       const response = await fetch('/api/admin/stock', {
         cache: 'no-store',
         headers: {
@@ -223,24 +225,24 @@ export default function StockManagementPage() {
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          {product.colorVariants[0]?.images[0] && (
+                          {product.colorVariants[0]?.images && product.colorVariants[0].images.length > 0 ? (
                             <img
                               src={product.colorVariants[0].images[0].url}
                               alt={product.name}
                               className="w-12 h-12 rounded object-cover"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                // Try to use a Cloudinary URL with proper sizing
-                                if (target.src.includes('cloudinary')) {
-                                  target.src = "https://via.placeholder.com/150?text=No+Image";
-                                } else {
-                                  // Try to transform the URL to a Cloudinary URL
-                                  const cloudinaryUrl = product.colorVariants[0].images[0].url.replace('upload/', 'upload/w_150,h_150,c_fit/');
-                                  target.src = cloudinaryUrl;
-                                }
+                                target.src = "https://via.placeholder.com/150?text=No+Image";
+                                // Prevent infinite error loops
+                                target.onerror = null;
                               }}
                             />
-                          )}
+                          ) : (
+                            <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center text-gray-400">
+                              <span className="text-xs">No Image</span>
+                            </div>
+                          )
+                          }
                           <div>
                             <div className="font-medium text-gray-900 px-4">{product.name}</div>
                             <div className="text-sm text-gray-500 px-4">ID: {product.id}</div>
