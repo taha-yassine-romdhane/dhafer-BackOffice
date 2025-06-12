@@ -54,12 +54,23 @@ const OrdersByStatusChart: React.FC<OrdersByStatusChartProps> = ({
   // Transform the data to the format expected by recharts
   const chartData = selectedData.labels.map((label, index) => {
     // Format the date to be more compact (e.g., '18 Mai')
-    const formattedDate = label.includes('T')
-      ? new Date(label).toLocaleDateString('fr-FR', { 
-          day: '2-digit', 
-          month: 'short' 
-        }).replace('.', '') // Remove period after month
-      : dayTranslations[label] || label;
+    let formattedDate;
+    if (label.includes('T')) {
+      // Parse the ISO string and preserve the UTC date to avoid timezone shifts
+      const dateObj = new Date(label);
+      // Use the UTC date components to create a date that will display correctly in the local timezone
+      const utcDate = new Date(Date.UTC(
+        dateObj.getUTCFullYear(),
+        dateObj.getUTCMonth(),
+        dateObj.getUTCDate()
+      ));
+      formattedDate = utcDate.toLocaleDateString('fr-FR', { 
+        day: '2-digit', 
+        month: 'short' 
+      }).replace('.', ''); // Remove period after month
+    } else {
+      formattedDate = dayTranslations[label] || label;
+    }
     const dataPoint: Record<string, any> = {
       name: formattedDate,
     };

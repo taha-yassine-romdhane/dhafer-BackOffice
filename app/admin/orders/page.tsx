@@ -277,7 +277,12 @@ export default function Orders() {
   // Apply all filters
   const filteredOrders = orders
     .filter(order => statusFilter === 'all' || order.status === statusFilter)
-    .filter(order => !customerNameFilter || order.customerName.toLowerCase().includes(customerNameFilter.toLowerCase()))
+    .filter(order => {
+      if (!customerNameFilter) return true;
+      const searchTerm = customerNameFilter.toLowerCase();
+      return order.customerName.toLowerCase().includes(searchTerm) || 
+             order.phoneNumber.toLowerCase().includes(searchTerm);
+    })
     .filter(order => !startDateFilter || new Date(order.createdAt) >= new Date(startDateFilter))
     .filter(order => !endDateFilter || new Date(order.createdAt) <= new Date(`${endDateFilter}T23:59:59`))
     .filter(order => !minAmountFilter || order.totalAmount >= parseFloat(minAmountFilter))
@@ -394,7 +399,7 @@ export default function Orders() {
           </div>
           <input
             type="text"
-            placeholder="Rechercher par nom de client..."
+            placeholder="Rechercher par nom de client ou numéro de téléphone..."
             value={customerNameFilter}
             onChange={(e) => {
               setCustomerNameFilter(e.target.value);
