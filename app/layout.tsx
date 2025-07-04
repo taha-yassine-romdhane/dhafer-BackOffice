@@ -7,12 +7,12 @@ const inter = Inter({ subsets: ['latin'] });
 export const fetchCache = 'force-no-store';
 
 export const metadata: Metadata = {
-  title: 'Dar Al Koftan Al Assil - Admin Backoffice',
-  description: 'Backoffice administrateur pour Dar Al Koftan Al Assil',
-  metadataBase: new URL('https://admin.daralkoftanalassil.com/'),
+  title: 'Aichic Couture - Admin Backoffice',
+  description: 'Backoffice administrateur pour Aichic Couture',
+  metadataBase: new URL('https://admin.aichic.tn/'),
   icons: {
-    icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
   },
 };
 
@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <head>
-        <link rel="icon" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
           <main>

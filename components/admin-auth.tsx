@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-const ADMIN_PASSWORD = "koftan123"
+const ADMIN_PASSWORD = "dhafer123"
 
 export function AdminAuth({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,11 +16,6 @@ export function AdminAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Generate a session token from the password
-    const generateSessionToken = (pwd: string) => {
-      return btoa(pwd + Date.now().toString()); // Simple token generation
-    };
-
     const checkSession = () => {
       const sessionToken = localStorage.getItem('admin-session');
       const sessionExpiry = localStorage.getItem('admin-session-expiry');

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       console.log(`File saved: ${filePath}`);
 
       // Construct URL for image serving
-      const imageUrl = `https://images.daralkoftanalassil.com/${fileName}`;
+      const imageUrl = `https://images.aichic.tn/${fileName}`;
 
       uploadedImages.push({
         url: imageUrl,
