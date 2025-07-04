@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app:
-    container_name: dar-koftan-app
+    container_name: dhafer-backoffice
     build:
       context: .
       dockerfile: Dockerfile
