@@ -322,7 +322,7 @@ export default function SMSAbonnePage() {
                   <Label htmlFor="sms-content">Message</Label>
                   <Textarea
                     id="sms-content"
-                    placeholder="Exemple Promotion de 20% sur les commandes du mois de Ramadan avec Dar Koftan al assil..."
+                    placeholder="Exemple Promotion de 20% sur les commandes du mois de Ramadan avec Aichic Couture..."
                     value={smsContent}
                     onChange={(e) => setSmsContent(e.target.value)}
                     rows={6}
